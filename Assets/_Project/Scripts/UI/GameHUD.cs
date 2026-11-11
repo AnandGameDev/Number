@@ -76,6 +76,8 @@ namespace DayakattamDungeon.UI
         [SerializeField] private TextMeshProUGUI gameOverStatsText;
         [SerializeField] private Button playAgainButton;
         [SerializeField] private Button challengeHardBotButton;
+        [SerializeField] private Button fourPlayerModeButton;
+        [SerializeField] private Button twoPlayerHardButton;
 
         [Header("Audio Settings")]
         [SerializeField] private Button audioToggleButton;
@@ -177,6 +179,18 @@ namespace DayakattamDungeon.UI
             {
                 challengeHardBotButton.onClick.RemoveListener(OnChallengeHardBotClicked);
                 challengeHardBotButton.onClick.AddListener(OnChallengeHardBotClicked);
+            }
+
+            if (fourPlayerModeButton != null)
+            {
+                fourPlayerModeButton.onClick.RemoveListener(OnFourPlayerModeVictoryClicked);
+                fourPlayerModeButton.onClick.AddListener(OnFourPlayerModeVictoryClicked);
+            }
+
+            if (twoPlayerHardButton != null)
+            {
+                twoPlayerHardButton.onClick.RemoveListener(OnTwoPlayerHardVictoryClicked);
+                twoPlayerHardButton.onClick.AddListener(OnTwoPlayerHardVictoryClicked);
             }
 
             if (audioToggleButton != null)
@@ -340,6 +354,7 @@ namespace DayakattamDungeon.UI
                     case GameState.P1_RollingPhase:
                         turnBannerText.text = "YOUR TURN: ROLL THE DAYAKATTAM!";
                         turnBannerText.color = new Color(0.95f, 0.35f, 0.35f);
+                        TriggerYourTurnAlert();
                         break;
                     case GameState.P1_ActionPhase:
                         bool canAwaken = TurnAndStreakManager.Instance != null &&
@@ -854,9 +869,28 @@ namespace DayakattamDungeon.UI
             }
         }
 
+        private void TriggerYourTurnAlert()
+        {
+            // Center floating 3D alert
+            if (GameJuiceManager.Instance != null)
+            {
+                GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.2f, -1.5f), "YOUR TURN!", new Color(1f, 0.85f, 0.2f), 2.2f);
+                GameJuiceManager.Instance.TriggerShake(0.08f);
+            }
+
+            // Auspicious Temple Bell sting
+            if (DayakattamAudioPlayer.Instance != null)
+            {
+                DayakattamAudioPlayer.Instance.PlayTempleBell();
+            }
+        }
+
         private void OnRestartMatchClicked()
         {
-            TurnAndStreakManager.Instance.InitializeMatch(startWithTutorial: false);
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.RestartMatch();
+            }
         }
 
         private void OnToggleDifficultyClicked()
@@ -979,19 +1013,59 @@ namespace DayakattamDungeon.UI
         private void OnPlayAgainClicked()
         {
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
-            TurnAndStreakManager.Instance.InitializeMatch(startWithTutorial: false);
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.RestartMatch();
+            }
         }
 
         private void OnChallengeHardBotClicked()
         {
+            OnTwoPlayerHardVictoryClicked();
+        }
+
+        private void OnFourPlayerModeVictoryClicked()
+        {
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
+
+            if (ThayamBoardGrid.Instance != null)
+            {
+                ThayamBoardGrid.Instance.SetPlayerMode(BoardPlayerMode.FourPlayers);
+            }
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.SetPlayerMode(BoardPlayerMode.FourPlayers);
+            }
+            UpdatePlayerModeUI();
+            RefreshAllPalaceProgressUI();
+        }
+
+        private void OnTwoPlayerHardVictoryClicked()
+        {
+            if (gameOverPanel != null) gameOverPanel.SetActive(false);
+
+            if (ThayamBoardGrid.Instance != null)
+            {
+                ThayamBoardGrid.Instance.SetPlayerMode(BoardPlayerMode.TwoPlayers);
+            }
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.SetPlayerMode(BoardPlayerMode.TwoPlayers);
+            }
+
             var bot = FindFirstObjectByType<BotAIController>();
             if (bot != null)
             {
                 bot.Difficulty = BotDifficulty.Hard;
                 UpdateDifficultyUI();
             }
-            TurnAndStreakManager.Instance.InitializeMatch(startWithTutorial: false);
+
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.RestartMatch();
+            }
+            UpdatePlayerModeUI();
+            RefreshAllPalaceProgressUI();
         }
     }
 }

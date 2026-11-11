@@ -180,6 +180,14 @@ namespace DayakattamDungeon.Core
                 return;
             }
 
+            ResetAllPawnsToReserve();
+
+            // Clear board highlights & move previews
+            if (ThayamBoardGrid.Instance != null)
+            {
+                ThayamBoardGrid.Instance.ClearHighlights();
+            }
+
             SubscribeEvents();
             p1Health = maxSpiritHealth;
             botHealth = maxSpiritHealth;
@@ -228,6 +236,21 @@ namespace DayakattamDungeon.Core
             {
                 StartPlayerTurn();
             }
+        }
+
+        /// <summary>
+        /// Fully resets the current match, bringing all pawns back to reserve,
+        /// clearing banked dice rolls, and resetting the turn cycle to Player 1.
+        /// </summary>
+        public void RestartMatch()
+        {
+            Debug.Log("[TurnAndStreakManager] Restarting match...");
+            ResetAllPawnsToReserve();
+            if (ThayamBoardGrid.Instance != null)
+            {
+                ThayamBoardGrid.Instance.ClearHighlights();
+            }
+            InitializeMatch(startWithTutorial: false);
         }
 
         public void SetState(GameState newState)

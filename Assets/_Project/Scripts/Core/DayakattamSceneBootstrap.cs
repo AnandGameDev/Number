@@ -755,8 +755,8 @@ namespace DayakattamDungeon.Core
 
             TextMeshProUGUI goStats = CreateTMPText(gameOverPanelGO.transform, "GameOverStats", "Match Statistics...", 16, new Vector2(0, -45), new Vector2(620, 130), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
 
-            Button playAgainBtn = CreateButton(gameOverPanelGO.transform, "PlayAgainButton", "Play Again", new Vector2(-150, -195), new Vector2(240, 50), 17, new Color(0.18f, 0.55f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
-            Button challengeBotBtn = CreateButton(gameOverPanelGO.transform, "ChallengeBotButton", "Hard Grandma Duel", new Vector2(150, -195), new Vector2(240, 50), 17, new Color(0.65f, 0.25f, 0.22f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            Button fourPlayerBtn = CreateButton(gameOverPanelGO.transform, "FourPlayerModeButton", "4-Player Mode", new Vector2(-150, -195), new Vector2(250, 50), 17, new Color(0.18f, 0.55f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            Button twoPlayerHardBtn = CreateButton(gameOverPanelGO.transform, "TwoPlayerHardButton", "2-Player Hard Mode", new Vector2(150, -195), new Vector2(250, 50), 17, new Color(0.65f, 0.25f, 0.22f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
 
             gameOverPanelGO.SetActive(false);
 
@@ -784,8 +784,10 @@ namespace DayakattamDungeon.Core
             SetField(hud, "gameOverTitleText", goTitle);
             SetField(hud, "gameOverSubtitleText", goSubtitle);
             SetField(hud, "gameOverStatsText", goStats);
-            SetField(hud, "playAgainButton", playAgainBtn);
-            SetField(hud, "challengeHardBotButton", challengeBotBtn);
+            SetField(hud, "playAgainButton", fourPlayerBtn);
+            SetField(hud, "challengeHardBotButton", twoPlayerHardBtn);
+            SetField(hud, "fourPlayerModeButton", fourPlayerBtn);
+            SetField(hud, "twoPlayerHardButton", twoPlayerHardBtn);
             SetField(hud, "audioToggleButton", audioBtn);
             SetField(hud, "audioToggleText", audioText);
             SetField(hud, "playerModeButton", modeBtn);
