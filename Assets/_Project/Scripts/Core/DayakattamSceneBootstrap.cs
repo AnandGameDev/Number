@@ -74,7 +74,7 @@ namespace DayakattamDungeon.Core
         {
             SetupAudio();
 
-            // Re-wire LorePanel buttons (runtime AddListener callbacks are not serialized in scene files)
+            // Re-wire LorePanel / Interactive Tutorial buttons (runtime AddListener callbacks are not serialized in scene files)
             Canvas canvas = Object.FindFirstObjectByType<Canvas>();
             if (canvas != null)
             {
@@ -82,18 +82,36 @@ namespace DayakattamDungeon.Core
                 if (loreT != null)
                 {
                     GameObject lorePanel = loreT.gameObject;
+                    var tutorialDialog = lorePanel.GetComponent<InteractiveTutorialDialog>();
+
                     Transform loreBtnT = canvas.transform.Find("LoreButton");
                     if (loreBtnT != null && loreBtnT.TryGetComponent<Button>(out Button loreBtn))
                     {
                         loreBtn.onClick.RemoveAllListeners();
-                        loreBtn.onClick.AddListener(() => lorePanel.SetActive(!lorePanel.activeSelf));
+                        loreBtn.onClick.AddListener(() =>
+                        {
+                            if (tutorialDialog != null)
+                            {
+                                if (lorePanel.activeSelf) tutorialDialog.Close();
+                                else tutorialDialog.Open();
+                            }
+                            else
+                            {
+                                lorePanel.SetActive(!lorePanel.activeSelf);
+                            }
+                        });
                     }
 
                     Transform closeT = loreT.Find("CloseLoreButton");
+                    if (closeT == null) closeT = loreT.Find("FooterContainer/CloseLoreButton");
                     if (closeT != null && closeT.TryGetComponent<Button>(out Button closeBtn))
                     {
                         closeBtn.onClick.RemoveAllListeners();
-                        closeBtn.onClick.AddListener(() => lorePanel.SetActive(false));
+                        closeBtn.onClick.AddListener(() =>
+                        {
+                            if (tutorialDialog != null) tutorialDialog.Close();
+                            else lorePanel.SetActive(false);
+                        });
                     }
                 }
             }
@@ -995,37 +1013,20 @@ namespace DayakattamDungeon.Core
 
             Button menuBtn = CreateButton(canvas.transform, "MenuButton", "Menu [ESC]", new Vector2(888, -40), new Vector2(105, 40), 14, new Color(0.24f, 0.24f, 0.34f), topAnchor, topAnchor, uiDisplayFont);
 
-            // Rules & Lore Modal Panel (Initially hidden)
-            GameObject lorePanelGO = new GameObject("LorePanel", typeof(RectTransform), typeof(Image));
-            lorePanelGO.transform.SetParent(canvas.transform, false);
-            RectTransform loreRT = lorePanelGO.GetComponent<RectTransform>();
-            loreRT.anchorMin = new Vector2(0.5f, 0.5f);
-            loreRT.anchorMax = new Vector2(0.5f, 0.5f);
-            loreRT.anchoredPosition = Vector2.zero;
-            loreRT.sizeDelta = new Vector2(860, 520);
-            Image loreBg = lorePanelGO.GetComponent<Image>();
-            loreBg.color = new Color(0.04f, 0.04f, 0.07f, 0.96f);
+            // Rules & Lore / Interactive Tutorial Modal Panel (Initially hidden)
+            InteractiveTutorialDialog tutDialog = DayakattamDungeon.EditorUtils.TutorialModalBuilder.BuildInteractiveTutorialModal(
+                canvas.transform,
+                titleFont,
+                bodyFont,
+                uiDisplayFont
+            );
 
-            string loreTextContent = "<b><size=24><color=#FFD700>DAYAKATTAM DUNGEON — THE SACRED DICE DUEL</color></size></b>\n\n" +
-                "<b>Cultural Heritage:</b> Based on the traditional Tamil board game <i>Thayam</i>, played for millennia during festive gatherings with two brass stick dice.\n\n" +
-                "<b>The 'Lucky Number' Math:</b>\n" +
-                "• Two 4-sided oblong brass sticks (faces: 0, 1, 2, 3).\n" +
-                "• Normal sum: 1..6. But rolling <b>0 + 0 = 12 (Pannirendu)!</b>\n" +
-                "• <b>Lucky Numbers (1, 5, 6, 12):</b> Trigger an <i>Auspicious Streak</i>, granting +1 Extra Roll and accelerating your <i>Combo Multiplier</i> (1x -> 1.5x -> 2x -> 3x)!\n" +
-                "• Standard numbers (2, 3, 4) end your rolling streak and begin the Action Phase.\n\n" +
-                "<b>Tactical Board & Sanctuary:</b>\n" +
-                "• <b>Thayam Entry:</b> You must spend a <b>1 (Thayam)</b> to awaken a spirit pawn from reserve.\n" +
-                "• <b>Malai (Safe Squares):</b> The 8 crossed perimeter tiles grant capture immunity.\n" +
-                "• <b>Striking:</b> Landing on an opponent pawn on an unsafe tile cuts them back to their reserve!\n\n" +
-                "<b>Victory:</b> The first player to successfully navigate all 3 spirit pawns into the Central Palace wins the duel!";
-
-            TextMeshProUGUI loreTxt = CreateTMPText(lorePanelGO.transform, "LoreText", loreTextContent, 16, new Vector2(0, 25), new Vector2(800, 430), TextAlignmentOptions.TopLeft, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), bodyFont);
-            loreTxt.color = new Color(0.95f, 0.95f, 0.95f);
-
-            Button closeLoreBtn = CreateButton(lorePanelGO.transform, "CloseLoreButton", "Close", new Vector2(0, -225), new Vector2(160, 42), 16, new Color(0.7f, 0.25f, 0.25f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
-            closeLoreBtn.onClick.AddListener(() => lorePanelGO.SetActive(false));
-            loreBtn.onClick.AddListener(() => lorePanelGO.SetActive(!lorePanelGO.activeSelf));
-            lorePanelGO.SetActive(false);
+            GameObject lorePanelGO = tutDialog.gameObject;
+            loreBtn.onClick.AddListener(() =>
+            {
+                if (lorePanelGO.activeSelf) tutDialog.Close();
+                else tutDialog.Open();
+            });
 
             // 2. Tutorial Panel ("Grandmother's Voice")
             GameObject tutPanelGO = new GameObject("TutorialPanel", typeof(RectTransform), typeof(Image));
