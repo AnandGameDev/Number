@@ -189,6 +189,7 @@ namespace DayakattamDungeon.Core
             }
 
             SubscribeEvents();
+            FirstThayamPawnIndicator.ResetMatchFlag();
             p1Health = maxSpiritHealth;
             botHealth = maxSpiritHealth;
             currentRollPool.Clear();

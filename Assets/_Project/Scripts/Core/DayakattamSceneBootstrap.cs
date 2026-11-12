@@ -118,6 +118,24 @@ namespace DayakattamDungeon.Core
 
             if (TurnAndStreakManager.Instance != null)
             {
+                // Ensure Player 1 pawns have the FirstThayamPawnIndicator
+                if (TurnAndStreakManager.Instance.Player1Pawns != null)
+                {
+                    foreach (var p in TurnAndStreakManager.Instance.Player1Pawns)
+                    {
+                        if (p != null && p.GetComponent<DayakattamDungeon.Entities.FirstThayamPawnIndicator>() == null)
+                        {
+                            p.gameObject.AddComponent<DayakattamDungeon.Entities.FirstThayamPawnIndicator>();
+                        }
+                    }
+                }
+
+                // Ensure PlayerTrayTurnIndicator is present and active
+                if (Object.FindFirstObjectByType<DayakattamDungeon.Environment.PlayerTrayTurnIndicator>() == null)
+                {
+                    new GameObject("PlayerTrayTurnIndicator", typeof(DayakattamDungeon.Environment.PlayerTrayTurnIndicator));
+                }
+
                 TurnAndStreakManager.Instance.InitializeMatch(false);
             }
 
@@ -804,6 +822,11 @@ namespace DayakattamDungeon.Core
             foreach (var p in p2Pawns) p.gameObject.SetActive(is4P);
             foreach (var p in p4Pawns) p.gameObject.SetActive(is4P);
 
+            if (Object.FindFirstObjectByType<DayakattamDungeon.Environment.PlayerTrayTurnIndicator>() == null)
+            {
+                new GameObject("PlayerTrayTurnIndicator", typeof(DayakattamDungeon.Environment.PlayerTrayTurnIndicator));
+            }
+
             return (p1Pawns, p2Pawns, botPawns, p4Pawns);
         }
 
@@ -877,6 +900,11 @@ namespace DayakattamDungeon.Core
             PawnController pawn = pawnGO.AddComponent<PawnController>();
             SetField(pawn, "selectionGlow", glow);
             pawn.Initialize(owner, id, reservePos);
+
+            if (owner == PlayerType.Player1)
+            {
+                pawnGO.AddComponent<DayakattamDungeon.Entities.FirstThayamPawnIndicator>();
+            }
 
             return pawn;
         }

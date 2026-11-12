@@ -607,9 +607,23 @@ namespace DayakattamDungeon.UI
                         turnBannerText.color = new Color(1f, 0.85f, 0.3f);
                         break;
                     case GameState.P1_RollingPhase:
-                        turnBannerText.text = "YOUR TURN: ROLL THE DAYAKATTAM!";
-                        turnBannerText.color = new Color(1f, 0.76f, 0.15f);
-                        turnBannerText.enableVertexGradient = true;
+                        bool hasThayamInPool = TurnAndStreakManager.Instance != null &&
+                                               TurnAndStreakManager.Instance.CurrentRollPool.Contains(1);
+                        bool hasReservePawns = TurnAndStreakManager.Instance != null &&
+                                               TurnAndStreakManager.Instance.Player1Pawns.Any(p => p.State == PawnState.InReserve);
+
+                        if (hasThayamInPool && hasReservePawns)
+                        {
+                            turnBannerText.text = "THAYAM ROLLED! 👉 TOUCH YOUR PAWN TO ENTER BOARD!";
+                            turnBannerText.color = new Color(1f, 0.88f, 0.2f);
+                            turnBannerText.enableVertexGradient = true;
+                        }
+                        else
+                        {
+                            turnBannerText.text = "YOUR TURN: ROLL THE DAYAKATTAM!";
+                            turnBannerText.color = new Color(1f, 0.76f, 0.15f);
+                            turnBannerText.enableVertexGradient = true;
+                        }
                         TriggerYourTurnAlert();
                         break;
                     case GameState.P1_ActionPhase:
@@ -620,8 +634,8 @@ namespace DayakattamDungeon.UI
                                             TurnAndStreakManager.Instance.Player1Pawns.Any(p => p.State == PawnState.InReserve);
                         if (canAwaken && anyInReserve)
                         {
-                            turnBannerText.text = "ACTION: CLICK [1] OR YOUR RED PAWN TO ENTER BOARD!";
-                            turnBannerText.color = new Color(1f, 0.40f, 0.40f);
+                            turnBannerText.text = "THAYAM READY! 👉 TOUCH YOUR PAWN TO ENTER BOARD!";
+                            turnBannerText.color = new Color(1f, 0.88f, 0.2f);
                         }
                         else
                         {

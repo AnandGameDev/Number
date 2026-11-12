@@ -181,7 +181,27 @@ namespace DayakattamDungeon.Entities
             if (TurnAndStreakManager.Instance == null) return;
             if (TurnAndStreakManager.Instance.ActivePlayer != PlayerType.Player1) return;
 
+            var pool = TurnAndStreakManager.Instance.CurrentRollPool;
             var turnState = TurnAndStreakManager.Instance.CurrentState;
+
+            // Case A: Pawn in reserve -> If 1 (Thayam) is banked, allow immediate awakening even during rolling phase!
+            if (state == PawnState.InReserve)
+            {
+                if (pool.Contains(1) && (turnState == GameState.P1_ActionPhase || turnState == GameState.P1_RollingPhase || turnState == GameState.TutorialIntro))
+                {
+                    AwakenWithRoll();
+                    return;
+                }
+                else if (!pool.Contains(1))
+                {
+                    if (GameJuiceManager.Instance != null)
+                    {
+                        GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 0.8f, "Needs 1 (Thayam) to Awaken!", new Color(1f, 0.45f, 0.45f), 1.3f);
+                    }
+                    return;
+                }
+            }
+
             if (turnState != GameState.P1_ActionPhase && turnState != GameState.TutorialIntro)
             {
                 if (GameJuiceManager.Instance != null)
@@ -191,29 +211,11 @@ namespace DayakattamDungeon.Entities
                 return;
             }
 
-            var pool = TurnAndStreakManager.Instance.CurrentRollPool;
             if (pool.Count == 0)
             {
                 if (GameJuiceManager.Instance != null)
                 {
                     GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 0.8f, "No banked rolls left!", Color.gray, 1.0f);
-                }
-                return;
-            }
-
-            // Case A: Pawn in reserve -> Awaken
-            if (state == PawnState.InReserve)
-            {
-                if (pool.Contains(1))
-                {
-                    AwakenWithRoll();
-                }
-                else
-                {
-                    if (GameJuiceManager.Instance != null)
-                    {
-                        GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 0.8f, "Needs 1 (Thayam) to Awaken!", new Color(1f, 0.45f, 0.45f), 1.3f);
-                    }
                 }
                 return;
             }
@@ -256,9 +258,12 @@ namespace DayakattamDungeon.Entities
         private void AwakenWithRoll()
         {
             TurnAndStreakManager.Instance.SpendRoll(1, this);
+            var indicator = GetComponent<FirstThayamPawnIndicator>();
+            if (indicator != null) indicator.OnPawnAwakened();
+
             if (GameJuiceManager.Instance != null)
             {
-                GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 1.0f, "AWAKENED!", Color.yellow, 1.2f);
+                GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 1.0f, "✨ PAWN AWAKENED! ✨", new Color(1f, 0.88f, 0.2f), 1.4f);
             }
         }
 
