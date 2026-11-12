@@ -33,11 +33,12 @@ namespace DayakattamDungeon.EditorTools
 
             // WebGL-specific size & runtime settings
             PlayerSettings.WebGL.dataCaching = true;
-            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
-            PlayerSettings.WebGL.decompressionFallback = false;
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
             PlayerSettings.WebGL.debugSymbolMode = WebGLDebugSymbolMode.Off;
             PlayerSettings.WebGL.wasm2023 = true;
+            PlayerSettings.WebGL.template = "APPLICATION:Default";
 
             UnityEditor.WebGL.UserBuildSettings.codeOptimization =
                 UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
