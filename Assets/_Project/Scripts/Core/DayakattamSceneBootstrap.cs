@@ -7,6 +7,7 @@ using DayakattamDungeon.Audio;
 using DayakattamDungeon.Board;
 using DayakattamDungeon.Dice;
 using DayakattamDungeon.Entities;
+using DayakattamDungeon.Environment;
 using DayakattamDungeon.Tutorial;
 using DayakattamDungeon.UI;
 
@@ -24,6 +25,7 @@ namespace DayakattamDungeon.Core
     {
         [Header("Scene Configuration")]
         [SerializeField] private bool autoBuildOnStart = true;
+        [SerializeField] private bool rebuildExistingSceneOnStart = false;
         [SerializeField] private bool startWithTutorial = true;
 
         [Header("Materials (Optional overrides)")]
@@ -36,14 +38,77 @@ namespace DayakattamDungeon.Core
         [SerializeField] private Material groundMaterial;
         [SerializeField] private Material emissiveMaterial;
 
+        [Header("Atmosphere Materials")]
+        [SerializeField] private Material teakMaterial;
+        [SerializeField] private Material stoneFloorMaterial;
+        [SerializeField] private Material stonePlinthMaterial;
+        [SerializeField] private Material brassMaterial;
+        [SerializeField] private Material diyaFlameMaterial;
+
         [Header("Prefabs & Mesh Assets")]
         [SerializeField] private GameObject dicePrefab;
 
         private void Start()
         {
-            if (autoBuildOnStart)
+            if (!autoBuildOnStart) return;
+
+            if (rebuildExistingSceneOnStart || !IsSceneAlreadyBuilt())
             {
                 BuildScene();
+            }
+            else
+            {
+                InitializeExistingSceneForPlay();
+            }
+        }
+
+        private bool IsSceneAlreadyBuilt()
+        {
+            return GameObject.Find("TempleCourtyardEnvironment") != null
+                && Object.FindFirstObjectByType<ThayamBoardGrid>() != null
+                && Object.FindFirstObjectByType<GameHUD>() != null
+                && Object.FindFirstObjectByType<TurnAndStreakManager>() != null;
+        }
+
+        private void InitializeExistingSceneForPlay()
+        {
+            SetupAudio();
+
+            // Re-wire LorePanel buttons (runtime AddListener callbacks are not serialized in scene files)
+            Canvas canvas = Object.FindFirstObjectByType<Canvas>();
+            if (canvas != null)
+            {
+                Transform loreT = canvas.transform.Find("LorePanel");
+                if (loreT != null)
+                {
+                    GameObject lorePanel = loreT.gameObject;
+                    Transform loreBtnT = canvas.transform.Find("LoreButton");
+                    if (loreBtnT != null && loreBtnT.TryGetComponent<Button>(out Button loreBtn))
+                    {
+                        loreBtn.onClick.RemoveAllListeners();
+                        loreBtn.onClick.AddListener(() => lorePanel.SetActive(!lorePanel.activeSelf));
+                    }
+
+                    Transform closeT = loreT.Find("CloseLoreButton");
+                    if (closeT != null && closeT.TryGetComponent<Button>(out Button closeBtn))
+                    {
+                        closeBtn.onClick.RemoveAllListeners();
+                        closeBtn.onClick.AddListener(() => lorePanel.SetActive(false));
+                    }
+                }
+            }
+
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.InitializeMatch(false);
+            }
+
+            GameHUD hud = Object.FindFirstObjectByType<GameHUD>();
+            if (hud != null)
+            {
+                hud.InitializeHUD();
+                hud.RefreshAllPalaceProgressUI();
+                hud.ShowTitleScreen();
             }
         }
 
@@ -59,36 +124,48 @@ namespace DayakattamDungeon.Core
             // 2. Setup Board
             ThayamBoardGrid board = SetupBoard();
 
-            // 3. Setup Dice & Roller
+            // 3. Setup Temple Courtyard Environment, Board Rim & Diyas
+            SetupEnvironment();
+
+            // 4. Setup Dice & Roller
             DayakattamRoller roller = SetupDice();
 
-            // 4. Setup Audio Player
+            // 5. Setup Audio Player
             SetupAudio();
 
-            // 5. Setup Pawns (4-Player Sanctuary Trays and 12 Kalasam pawns)
+            // 6. Setup Pawns (4-Player Sanctuary Trays and 12 Kalasam pawns)
             var (p1Pawns, p2Pawns, botPawns, p4Pawns) = SetupPawns();
 
-            // 6. Setup Managers (Turn & Streak, Bot AI, Tutorial)
+            // 7. Setup Managers (Turn & Streak, Bot AI, Tutorial)
             SetupManagers(p1Pawns, p2Pawns, botPawns, p4Pawns);
 
-            // 7. Setup UI Canvas
+            // 8. Setup UI Canvas
             SetupUI();
 
             Debug.Log("[DayakattamSceneBootstrap] Scene construction complete! Ready to play.");
 
             if (Application.isPlaying)
             {
-                // Start Match / Tutorial
+                // Prepare board & managers, then present atmospheric Title Screen
                 if (TurnAndStreakManager.Instance != null)
                 {
-                    TurnAndStreakManager.Instance.InitializeMatch(startWithTutorial);
+                    TurnAndStreakManager.Instance.InitializeMatch(false);
                 }
 
-                if (startWithTutorial && TutorialManager.Instance != null)
+                GameHUD hud = Object.FindFirstObjectByType<GameHUD>();
+                if (hud != null)
                 {
-                    TutorialManager.Instance.StartTutorial();
+                    hud.ShowTitleScreen();
                 }
             }
+#if UNITY_EDITOR
+            else
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                    UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene()
+                );
+            }
+#endif
         }
 
         private void FindExistingMaterials()
@@ -132,6 +209,27 @@ namespace DayakattamDungeon.Core
             {
                 emissiveMaterial = Resources.Load<Material>("Emissive") ??
                     AssetDatabaseLoadMaterial("Assets/GameJam/Scenes/MAIN/Emissive.mat");
+            }
+            if (teakMaterial == null)
+            {
+                teakMaterial = AssetDatabaseLoadMaterial("Assets/_Unity Essentials/Materials/Interior/Environment/WoodPlanksBrown.mat") ??
+                    CreatePBRMaterial(new Color(0.24f, 0.12f, 0.06f), 0.05f, 0.45f);
+            }
+            if (stoneFloorMaterial == null)
+            {
+                stoneFloorMaterial = CreatePBRMaterial(new Color(0.18f, 0.17f, 0.16f), 0.04f, 0.25f);
+            }
+            if (stonePlinthMaterial == null)
+            {
+                stonePlinthMaterial = CreatePBRMaterial(new Color(0.12f, 0.11f, 0.11f), 0.08f, 0.35f);
+            }
+            if (brassMaterial == null)
+            {
+                brassMaterial = goldMaterial ?? CreatePBRMaterial(new Color(0.92f, 0.74f, 0.24f), 0.88f, 0.85f);
+            }
+            if (diyaFlameMaterial == null)
+            {
+                diyaFlameMaterial = CreateGlowMaterial(new Color(1.0f, 0.65f, 0.12f));
             }
 #if UNITY_EDITOR
             if (dicePrefab == null)
@@ -191,7 +289,7 @@ namespace DayakattamDungeon.Core
             cam.transform.rotation = Quaternion.Euler(56f, 0f, 0f);
             cam.fieldOfView = 52f;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.06f, 0.06f, 0.09f);
+            cam.backgroundColor = new Color(0.045f, 0.04f, 0.055f);
         }
 
         private void SetupLighting()
@@ -203,9 +301,227 @@ namespace DayakattamDungeon.Core
                 dirLight = lightGO.GetComponent<Light>();
                 dirLight.type = LightType.Directional;
             }
-            dirLight.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
-            dirLight.color = new Color(1.0f, 0.95f, 0.85f);
-            dirLight.intensity = 1.2f;
+            dirLight.transform.rotation = Quaternion.Euler(48f, -28f, 0f);
+            dirLight.color = new Color(1.0f, 0.94f, 0.84f);
+            dirLight.intensity = 1.15f;
+
+            // Warm atmospheric dusk temple ambient
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.18f, 0.15f, 0.13f);
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = new Color(0.05f, 0.04f, 0.06f);
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogDensity = 0.012f;
+        }
+
+        private void SetupEnvironment()
+        {
+            GameObject envRoot = GameObject.Find("TempleCourtyardEnvironment");
+            if (envRoot != null)
+            {
+                Object.DestroyImmediate(envRoot);
+            }
+            envRoot = new GameObject("TempleCourtyardEnvironment");
+
+            // 1. Temple Courtyard Stone Floor
+            GameObject floorRoot = new GameObject("Courtyard_Stone_Floor");
+            floorRoot.transform.parent = envRoot.transform;
+
+            // Broad ground base slab (36m x 32m)
+            GameObject baseFloor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            baseFloor.name = "Courtyard_Base_Slab";
+            baseFloor.transform.parent = floorRoot.transform;
+            baseFloor.transform.position = new Vector3(0.8f, -0.06f, 0f);
+            baseFloor.transform.localScale = new Vector3(36f, 0.12f, 32f);
+            Object.DestroyImmediate(baseFloor.GetComponent<Collider>());
+            if (stoneFloorMaterial != null) baseFloor.GetComponent<Renderer>().sharedMaterial = stoneFloorMaterial;
+
+            // Tiled courtyard flagstone slabs with subtle stone seam styling
+            int gridX = 8;
+            int gridZ = 7;
+            float slabW = 4.2f;
+            float slabH = 4.2f;
+            float startX = 0.8f - (gridX - 1) * slabW * 0.5f;
+            float startZ = 0.0f - (gridZ - 1) * slabH * 0.5f;
+
+            for (int x = 0; x < gridX; x++)
+            {
+                for (int z = 0; z < gridZ; z++)
+                {
+                    GameObject slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    slab.name = $"Stone_Slab_{x}_{z}";
+                    slab.transform.parent = floorRoot.transform;
+                    float posX = startX + x * slabW;
+                    float posZ = startZ + z * slabH;
+                    float heightOffset = ((x + z) % 3) * 0.004f;
+                    slab.transform.position = new Vector3(posX, -0.015f + heightOffset, posZ);
+                    slab.transform.localScale = new Vector3(slabW - 0.12f, 0.04f, slabH - 0.12f);
+                    Object.DestroyImmediate(slab.GetComponent<Collider>());
+                    if (stoneFloorMaterial != null) slab.GetComponent<Renderer>().sharedMaterial = stoneFloorMaterial;
+                }
+            }
+
+            // 2. Raised Temple Plinth (Mandapam Platform beneath 7x7 board)
+            GameObject plinthRoot = new GameObject("Board_Stone_Plinth");
+            plinthRoot.transform.parent = envRoot.transform;
+
+            GameObject lowerPlinth = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            lowerPlinth.name = "Plinth_Lower";
+            lowerPlinth.transform.parent = plinthRoot.transform;
+            lowerPlinth.transform.position = new Vector3(0f, 0.02f, 0f);
+            lowerPlinth.transform.localScale = new Vector3(12.0f, 0.06f, 12.0f);
+            Object.DestroyImmediate(lowerPlinth.GetComponent<Collider>());
+            if (stonePlinthMaterial != null) lowerPlinth.GetComponent<Renderer>().sharedMaterial = stonePlinthMaterial;
+
+            GameObject upperPlinth = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            upperPlinth.name = "Plinth_Upper";
+            upperPlinth.transform.parent = plinthRoot.transform;
+            upperPlinth.transform.position = new Vector3(0f, 0.06f, 0f);
+            upperPlinth.transform.localScale = new Vector3(11.4f, 0.06f, 11.4f);
+            Object.DestroyImmediate(upperPlinth.GetComponent<Collider>());
+            if (stonePlinthMaterial != null) upperPlinth.GetComponent<Renderer>().sharedMaterial = stonePlinthMaterial;
+
+            // 3. Antique Carved Teakwood Board Rim (Bounding the 7x7 board)
+            GameObject rimRoot = new GameObject("Board_Teakwood_Rim");
+            rimRoot.transform.parent = envRoot.transform;
+
+            float rimDist = 5.25f;
+            float rimLength = 11.1f;
+            float rimThickness = 0.6f;
+            float rimHeight = 0.18f;
+            float rimY = 0.13f;
+
+            // North, South, East, West rim beams
+            CreateRimBeam(rimRoot.transform, "Rim_North", new Vector3(0f, rimY, rimDist), new Vector3(rimLength, rimHeight, rimThickness));
+            CreateRimBeam(rimRoot.transform, "Rim_South", new Vector3(0f, rimY, -rimDist), new Vector3(rimLength, rimHeight, rimThickness));
+            CreateRimBeam(rimRoot.transform, "Rim_East", new Vector3(rimDist, rimY, 0f), new Vector3(rimThickness, rimHeight, rimLength));
+            CreateRimBeam(rimRoot.transform, "Rim_West", new Vector3(-rimDist, rimY, 0f), new Vector3(rimThickness, rimHeight, rimLength));
+
+            // 4 Ornate Brass Corner Brackets & Rivets
+            Vector3[] corners = {
+                new Vector3(-rimDist, rimY + 0.015f, -rimDist),
+                new Vector3(rimDist, rimY + 0.015f, -rimDist),
+                new Vector3(-rimDist, rimY + 0.015f, rimDist),
+                new Vector3(rimDist, rimY + 0.015f, rimDist)
+            };
+
+            for (int i = 0; i < corners.Length; i++)
+            {
+                GameObject cornerCap = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                cornerCap.name = $"Brass_Corner_{i + 1}";
+                cornerCap.transform.parent = rimRoot.transform;
+                cornerCap.transform.position = corners[i];
+                cornerCap.transform.localScale = new Vector3(0.72f, rimHeight + 0.03f, 0.72f);
+                Object.DestroyImmediate(cornerCap.GetComponent<Collider>());
+                if (brassMaterial != null) cornerCap.GetComponent<Renderer>().sharedMaterial = brassMaterial;
+
+                // Center brass stud
+                GameObject stud = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                stud.name = "Stud";
+                stud.transform.parent = cornerCap.transform;
+                stud.transform.localPosition = new Vector3(0f, 0.5f, 0f);
+                stud.transform.localScale = new Vector3(0.45f, 0.45f, 0.45f);
+                Object.DestroyImmediate(stud.GetComponent<Collider>());
+                if (brassMaterial != null) stud.GetComponent<Renderer>().sharedMaterial = brassMaterial;
+            }
+
+            // 4. Traditional South Indian Brass Kuthuvilakku / Diyas
+            GameObject diyasRoot = new GameObject("Temple_Diyas");
+            diyasRoot.transform.parent = envRoot.transform;
+
+            // 4 Diya locations around courtyard
+            CreateDiyaLamp(diyasRoot.transform, "Diya_SW", new Vector3(-5.8f, 0.06f, -4.6f), enableLight: true, intensity: 1.35f, range: 6.0f);
+            CreateDiyaLamp(diyasRoot.transform, "Diya_SE", new Vector3(5.5f, 0.06f, -4.6f), enableLight: true, intensity: 1.35f, range: 6.0f);
+            CreateDiyaLamp(diyasRoot.transform, "Diya_NW", new Vector3(-5.8f, 0.06f, 4.8f), enableLight: true, intensity: 0.95f, range: 4.5f);
+            CreateDiyaLamp(diyasRoot.transform, "Diya_NE", new Vector3(5.5f, 0.06f, 4.8f), enableLight: true, intensity: 0.95f, range: 4.5f);
+        }
+
+        private void CreateRimBeam(Transform parent, string name, Vector3 pos, Vector3 scale)
+        {
+            GameObject beam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            beam.name = name;
+            beam.transform.parent = parent;
+            beam.transform.localPosition = pos;
+            beam.transform.localScale = scale;
+            Object.DestroyImmediate(beam.GetComponent<Collider>());
+            if (teakMaterial != null) beam.GetComponent<Renderer>().sharedMaterial = teakMaterial;
+        }
+
+        private void CreateDiyaLamp(Transform parent, string name, Vector3 worldPos, bool enableLight, float intensity, float range)
+        {
+            GameObject diyaGO = new GameObject(name);
+            diyaGO.transform.parent = parent;
+            diyaGO.transform.position = worldPos;
+
+            // Tier 1: Wide stepped pedestal
+            GameObject tier1 = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            tier1.name = "Pedestal_Base";
+            tier1.transform.parent = diyaGO.transform;
+            tier1.transform.localPosition = new Vector3(0, 0.05f, 0);
+            tier1.transform.localScale = new Vector3(0.68f, 0.05f, 0.68f);
+            Object.DestroyImmediate(tier1.GetComponent<Collider>());
+            if (brassMaterial != null) tier1.GetComponent<Renderer>().sharedMaterial = brassMaterial;
+
+            // Tier 2: Upper pedestal
+            GameObject tier2 = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            tier2.name = "Pedestal_Upper";
+            tier2.transform.parent = diyaGO.transform;
+            tier2.transform.localPosition = new Vector3(0, 0.12f, 0);
+            tier2.transform.localScale = new Vector3(0.48f, 0.04f, 0.48f);
+            Object.DestroyImmediate(tier2.GetComponent<Collider>());
+            if (brassMaterial != null) tier2.GetComponent<Renderer>().sharedMaterial = brassMaterial;
+
+            // Stem: Slender turned brass pillar
+            GameObject stem = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            stem.name = "Stem";
+            stem.transform.parent = diyaGO.transform;
+            stem.transform.localPosition = new Vector3(0, 0.28f, 0);
+            stem.transform.localScale = new Vector3(0.16f, 0.16f, 0.16f);
+            Object.DestroyImmediate(stem.GetComponent<Collider>());
+            if (brassMaterial != null) stem.GetComponent<Renderer>().sharedMaterial = brassMaterial;
+
+            // Saucer: Oil basin dish
+            GameObject dish = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            dish.name = "Oil_Saucer";
+            dish.transform.parent = diyaGO.transform;
+            dish.transform.localPosition = new Vector3(0, 0.46f, 0);
+            dish.transform.localScale = new Vector3(0.62f, 0.05f, 0.62f);
+            Object.DestroyImmediate(dish.GetComponent<Collider>());
+            if (brassMaterial != null) dish.GetComponent<Renderer>().sharedMaterial = brassMaterial;
+
+            // Central wick cone
+            GameObject wick = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            wick.name = "Wick";
+            wick.transform.parent = diyaGO.transform;
+            wick.transform.localPosition = new Vector3(0, 0.52f, 0);
+            wick.transform.localScale = new Vector3(0.12f, 0.04f, 0.12f);
+            Object.DestroyImmediate(wick.GetComponent<Collider>());
+            if (brassMaterial != null) wick.GetComponent<Renderer>().sharedMaterial = brassMaterial;
+
+            // Glowing teardrop flame
+            GameObject flame = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            flame.name = "Flame";
+            flame.transform.parent = diyaGO.transform;
+            flame.transform.localPosition = new Vector3(0, 0.62f, 0);
+            flame.transform.localScale = new Vector3(0.14f, 0.26f, 0.14f);
+            Object.DestroyImmediate(flame.GetComponent<Collider>());
+            if (diyaFlameMaterial != null) flame.GetComponent<Renderer>().sharedMaterial = diyaFlameMaterial;
+
+            Light pLight = null;
+            if (enableLight)
+            {
+                GameObject lightGO = new GameObject("FlameLight", typeof(Light));
+                lightGO.transform.parent = diyaGO.transform;
+                lightGO.transform.localPosition = new Vector3(0, 0.72f, 0);
+                pLight = lightGO.GetComponent<Light>();
+                pLight.type = LightType.Point;
+                pLight.color = new Color(1.0f, 0.72f, 0.35f);
+                pLight.range = range;
+                pLight.intensity = intensity;
+            }
+
+            var diyaComp = diyaGO.AddComponent<DayakattamDungeon.Environment.DiyaLamp>();
+            diyaComp.Initialize(flame.transform, pLight, intensity, range);
         }
 
         private ThayamBoardGrid SetupBoard()
@@ -313,17 +629,34 @@ namespace DayakattamDungeon.Core
                 stickB = sb.transform;
             }
 
-            // Create a small wooden tray under the sticks
+            // Create or update wooden tray with antique teakwood border under the sticks
             Transform tray = roller.transform.Find("DiceTray");
-            if (tray == null)
+            if (tray != null)
             {
-                GameObject t = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                t.name = "DiceTray";
-                t.transform.parent = roller.transform;
-                t.transform.position = new Vector3(7.0f, 0.05f, -1.0f);
-                t.transform.localScale = new Vector3(2.5f, 0.1f, 3.5f);
-                if (blackMaterial != null) t.GetComponent<Renderer>().sharedMaterial = blackMaterial;
+                Object.DestroyImmediate(tray.gameObject);
             }
+
+            GameObject diceTrayGO = new GameObject("DiceTray");
+            diceTrayGO.transform.parent = roller.transform;
+            diceTrayGO.transform.position = new Vector3(7.0f, 0.05f, -1.0f);
+
+            GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.name = "Floor";
+            floor.transform.parent = diceTrayGO.transform;
+            floor.transform.localPosition = Vector3.zero;
+            floor.transform.localScale = new Vector3(2.5f, 0.08f, 3.5f);
+            Object.DestroyImmediate(floor.GetComponent<Collider>());
+            if (blackMaterial != null) floor.GetComponent<Renderer>().sharedMaterial = blackMaterial;
+
+            float tw = 2.5f;
+            float th = 3.5f;
+            float rW = 0.16f;
+            float rH = 0.18f;
+            float rY = 0.08f;
+            CreateRimBeam(diceTrayGO.transform, "DiceTray_RimN", new Vector3(0, rY, th * 0.5f), new Vector3(tw + rW * 2f, rH, rW));
+            CreateRimBeam(diceTrayGO.transform, "DiceTray_RimS", new Vector3(0, rY, -th * 0.5f), new Vector3(tw + rW * 2f, rH, rW));
+            CreateRimBeam(diceTrayGO.transform, "DiceTray_RimE", new Vector3(tw * 0.5f, rY, 0), new Vector3(rW, rH, th));
+            CreateRimBeam(diceTrayGO.transform, "DiceTray_RimW", new Vector3(-tw * 0.5f, rY, 0), new Vector3(rW, rH, th));
 
             var visA = stickA.GetComponent<DayakattamStickVisual>() ?? stickA.gameObject.AddComponent<DayakattamStickVisual>();
             var visB = stickB.GetComponent<DayakattamStickVisual>() ?? stickB.gameObject.AddComponent<DayakattamStickVisual>();
@@ -602,44 +935,65 @@ namespace DayakattamDungeon.Core
                 DestroyImmediate(canvas.transform.GetChild(i).gameObject);
             }
 
+            // Load custom SDF fonts from Resources/Fonts & Materials
+            TMP_FontAsset titleFont = LoadCustomFont("Beyond Wonderland SDF");
+            TMP_FontAsset bannerItalicFont = LoadCustomFont("Bilderberg Italic OTF SDF");
+            TMP_FontAsset uiDisplayFont = LoadCustomFont("Bilderberg OTF SDF");
+            TMP_FontAsset shivarajaFont = LoadCustomFont("Shivaraja SDF");
+            TMP_FontAsset bodyFont = LoadCustomFont("CAROBTN_ SDF");
+
             // 1. Top Bar Elements (Anchored to Top-Center, perfectly spaced across 1920 width)
             Vector2 topAnchor = new Vector2(0.5f, 1f);
-            TextMeshProUGUI turnBanner = CreateTMPText(canvas.transform, "TurnBanner", "DAYAKATTAM DUNGEON", 20, new Vector2(0, -40), new Vector2(360, 42), TextAlignmentOptions.Center, topAnchor, topAnchor);
-            turnBanner.fontStyle = FontStyles.Bold;
+            TextMeshProUGUI turnBanner = CreateTMPText(canvas.transform, "TurnBanner", "DAYAKATTAM DUNGEON", 25.5f, new Vector2(0, -40), new Vector2(420, 44), TextAlignmentOptions.Center, topAnchor, topAnchor, bannerItalicFont);
+            turnBanner.fontStyle = FontStyles.Bold | FontStyles.Italic;
+            turnBanner.enableAutoSizing = true;
+            turnBanner.fontSizeMin = 17f;
+            turnBanner.fontSizeMax = 25.5f;
+            turnBanner.textWrappingMode = TextWrappingModes.NoWrap;
+            turnBanner.color = new Color(1f, 0.76f, 0.15f);
+            turnBanner.enableVertexGradient = true;
+            turnBanner.colorGradient = new VertexGradient(
+                new Color(1f, 0f, 0.157f, 1f),
+                new Color(1f, 0f, 0f, 1f),
+                Color.white,
+                Color.white
+            );
 
-            TextMeshProUGUI p1HealthText = CreateTMPText(canvas.transform, "P1HealthText", "Player: 0/3 Home", 17, new Vector2(-310, -40), new Vector2(180, 35), TextAlignmentOptions.Center, topAnchor, topAnchor);
+            TextMeshProUGUI p1HealthText = CreateTMPText(canvas.transform, "P1HealthText", "Player: 0/3 Home", 17, new Vector2(-310, -40), new Vector2(180, 35), TextAlignmentOptions.Center, topAnchor, topAnchor, uiDisplayFont);
             p1HealthText.color = new Color(1.0f, 0.40f, 0.40f);
 
-            TextMeshProUGUI p4GoalText = CreateTMPText(canvas.transform, "P4GoalText", "P4: 0/3", 16, new Vector2(-360, -40), new Vector2(100, 35), TextAlignmentOptions.Center, topAnchor, topAnchor);
+            TextMeshProUGUI p4GoalText = CreateTMPText(canvas.transform, "P4GoalText", "Dada: 0/3", 16, new Vector2(-360, -40), new Vector2(100, 35), TextAlignmentOptions.Center, topAnchor, topAnchor, uiDisplayFont);
             p4GoalText.color = new Color(1f, 0.88f, 0.2f);
             p4GoalText.gameObject.SetActive(false);
 
-            TextMeshProUGUI p2GoalText = CreateTMPText(canvas.transform, "P2GoalText", "P2: 0/3", 16, new Vector2(260, -40), new Vector2(100, 35), TextAlignmentOptions.Center, topAnchor, topAnchor);
+            TextMeshProUGUI p2GoalText = CreateTMPText(canvas.transform, "P2GoalText", "Mama: 0/3", 16, new Vector2(260, -40), new Vector2(100, 35), TextAlignmentOptions.Center, topAnchor, topAnchor, uiDisplayFont);
             p2GoalText.color = new Color(0.35f, 0.70f, 1f);
             p2GoalText.gameObject.SetActive(false);
 
-            TextMeshProUGUI botHealthText = CreateTMPText(canvas.transform, "BotHealthText", "Grandma: 0/3 Home", 17, new Vector2(310, -40), new Vector2(180, 35), TextAlignmentOptions.Center, topAnchor, topAnchor);
+            TextMeshProUGUI botHealthText = CreateTMPText(canvas.transform, "BotHealthText", "Grandma: 0/3 Home", 17, new Vector2(310, -40), new Vector2(180, 35), TextAlignmentOptions.Center, topAnchor, topAnchor, uiDisplayFont);
             botHealthText.color = new Color(0.25f, 0.95f, 0.55f);
 
-            Button diffBtn = CreateButton(canvas.transform, "DifficultyButton", "GRANDMA: NORMAL", new Vector2(-790, -40), new Vector2(145, 40), 13, new Color(0.18f, 0.28f, 0.24f), topAnchor, topAnchor);
+            Button diffBtn = CreateButton(canvas.transform, "DifficultyButton", "GRANDMA: NORMAL", new Vector2(-790, -40), new Vector2(145, 40), 13, new Color(0.18f, 0.28f, 0.24f), topAnchor, topAnchor, uiDisplayFont);
             TextMeshProUGUI diffText = diffBtn.GetComponentInChildren<TextMeshProUGUI>();
 
             // Rules & Lore Button
-            Button loreBtn = CreateButton(canvas.transform, "LoreButton", "? Rules & Lore", new Vector2(-650, -40), new Vector2(120, 40), 14, new Color(0.18f, 0.3f, 0.45f), topAnchor, topAnchor);
+            Button loreBtn = CreateButton(canvas.transform, "LoreButton", "? Rules & Lore", new Vector2(-650, -40), new Vector2(120, 40), 14, new Color(0.18f, 0.3f, 0.45f), topAnchor, topAnchor, uiDisplayFont);
 
             // Audio Mute Toggle Button
-            Button audioBtn = CreateButton(canvas.transform, "AudioToggleButton", "Sound: ON [M]", new Vector2(-520, -40), new Vector2(125, 40), 14, new Color(0.22f, 0.28f, 0.35f), topAnchor, topAnchor);
+            Button audioBtn = CreateButton(canvas.transform, "AudioToggleButton", "Sound: ON [M]", new Vector2(-520, -40), new Vector2(125, 40), 14, new Color(0.22f, 0.28f, 0.35f), topAnchor, topAnchor, uiDisplayFont);
             TextMeshProUGUI audioText = audioBtn.GetComponentInChildren<TextMeshProUGUI>();
 
             // Waypoint Path Toggle Button
-            Button waypointBtn = CreateButton(canvas.transform, "WaypointToggleButton", "Path: ON [P]", new Vector2(480, -40), new Vector2(120, 40), 14, new Color(0.15f, 0.35f, 0.45f), topAnchor, topAnchor);
+            Button waypointBtn = CreateButton(canvas.transform, "WaypointToggleButton", "Path: ON [P]", new Vector2(480, -40), new Vector2(120, 40), 14, new Color(0.15f, 0.35f, 0.45f), topAnchor, topAnchor, uiDisplayFont);
             TextMeshProUGUI waypointText = waypointBtn.GetComponentInChildren<TextMeshProUGUI>();
 
             // 2P / 4P Mode Toggle Button
-            Button modeBtn = CreateButton(canvas.transform, "PlayerModeButton", "Mode: 2P", new Vector2(615, -40), new Vector2(140, 40), 14, new Color(0.3f, 0.22f, 0.45f), topAnchor, topAnchor);
+            Button modeBtn = CreateButton(canvas.transform, "PlayerModeButton", "Mode: 2P", new Vector2(615, -40), new Vector2(140, 40), 14, new Color(0.3f, 0.22f, 0.45f), topAnchor, topAnchor, uiDisplayFont);
             TextMeshProUGUI modeText = modeBtn.GetComponentInChildren<TextMeshProUGUI>();
 
-            Button restartBtn = CreateButton(canvas.transform, "RestartButton", "Restart Match", new Vector2(765, -40), new Vector2(135, 40), 14, new Color(0.35f, 0.15f, 0.15f), topAnchor, topAnchor);
+            Button restartBtn = CreateButton(canvas.transform, "RestartButton", "Restart Match", new Vector2(760, -40), new Vector2(130, 40), 14, new Color(0.35f, 0.15f, 0.15f), topAnchor, topAnchor, uiDisplayFont);
+
+            Button menuBtn = CreateButton(canvas.transform, "MenuButton", "Menu [ESC]", new Vector2(888, -40), new Vector2(105, 40), 14, new Color(0.24f, 0.24f, 0.34f), topAnchor, topAnchor, uiDisplayFont);
 
             // Rules & Lore Modal Panel (Initially hidden)
             GameObject lorePanelGO = new GameObject("LorePanel", typeof(RectTransform), typeof(Image));
@@ -665,10 +1019,10 @@ namespace DayakattamDungeon.Core
                 "• <b>Striking:</b> Landing on an opponent pawn on an unsafe tile cuts them back to their reserve!\n\n" +
                 "<b>Victory:</b> The first player to successfully navigate all 3 spirit pawns into the Central Palace wins the duel!";
 
-            TextMeshProUGUI loreTxt = CreateTMPText(lorePanelGO.transform, "LoreText", loreTextContent, 16, new Vector2(0, 25), new Vector2(800, 430), TextAlignmentOptions.TopLeft, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            TextMeshProUGUI loreTxt = CreateTMPText(lorePanelGO.transform, "LoreText", loreTextContent, 16, new Vector2(0, 25), new Vector2(800, 430), TextAlignmentOptions.TopLeft, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), bodyFont);
             loreTxt.color = new Color(0.95f, 0.95f, 0.95f);
 
-            Button closeLoreBtn = CreateButton(lorePanelGO.transform, "CloseLoreButton", "Close", new Vector2(0, -225), new Vector2(160, 42), 16, new Color(0.7f, 0.25f, 0.25f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            Button closeLoreBtn = CreateButton(lorePanelGO.transform, "CloseLoreButton", "Close", new Vector2(0, -225), new Vector2(160, 42), 16, new Color(0.7f, 0.25f, 0.25f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
             closeLoreBtn.onClick.AddListener(() => lorePanelGO.SetActive(false));
             loreBtn.onClick.AddListener(() => lorePanelGO.SetActive(!lorePanelGO.activeSelf));
             lorePanelGO.SetActive(false);
@@ -684,21 +1038,21 @@ namespace DayakattamDungeon.Core
             Image tutBg = tutPanelGO.GetComponent<Image>();
             tutBg.color = new Color(0.06f, 0.06f, 0.09f, 0.94f);
 
-            TextMeshProUGUI tutText = CreateTMPText(tutPanelGO.transform, "TutorialDialogueText", "Grandmother's Voice: ...", 18, new Vector2(0, 10), new Vector2(850, 90), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            TextMeshProUGUI tutText = CreateTMPText(tutPanelGO.transform, "TutorialDialogueText", "Grandmother's Voice: ...", 18, new Vector2(0, 10), new Vector2(850, 90), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), bodyFont);
             tutText.color = new Color(1f, 0.95f, 0.8f);
 
-            Button skipBtn = CreateButton(tutPanelGO.transform, "SkipTutorialButton", "Skip Tutorial", new Vector2(360, -40), new Vector2(130, 32), 15, new Color(0.6f, 0.2f, 0.2f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            Button skipBtn = CreateButton(tutPanelGO.transform, "SkipTutorialButton", "Skip Tutorial", new Vector2(360, -40), new Vector2(130, 32), 15, new Color(0.6f, 0.2f, 0.2f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
 
             // 3. Bottom Control Elements (Anchored to Bottom-Center)
             Vector2 bottomAnchor = new Vector2(0.5f, 0f);
-            Button rollBtn = CreateButton(canvas.transform, "RollDiceButton", "ROLL [SPACE]", new Vector2(0, 52), new Vector2(240, 52), 19, new Color(0.85f, 0.65f, 0.15f), bottomAnchor, bottomAnchor);
-            Button endTurnBtn = CreateButton(canvas.transform, "EndTurnButton", "END [E]", new Vector2(190, 52), new Vector2(105, 46), 15, new Color(0.5f, 0.5f, 0.5f), bottomAnchor, bottomAnchor);
+            Button rollBtn = CreateButton(canvas.transform, "RollDiceButton", "ROLL [SPACE]", new Vector2(0, 52), new Vector2(240, 52), 19, new Color(0.85f, 0.65f, 0.15f), bottomAnchor, bottomAnchor, uiDisplayFont);
+            Button endTurnBtn = CreateButton(canvas.transform, "EndTurnButton", "END [E]", new Vector2(190, 52), new Vector2(105, 46), 15, new Color(0.5f, 0.5f, 0.5f), bottomAnchor, bottomAnchor, uiDisplayFont);
 
-            TextMeshProUGUI comboText = CreateTMPText(canvas.transform, "ComboText", "Streak: 0 | Combo: 1.0x", 17, new Vector2(0, 16), new Vector2(400, 26), TextAlignmentOptions.Center, bottomAnchor, bottomAnchor);
-            TextMeshProUGUI lastRoll = CreateTMPText(canvas.transform, "LastRollText", "Roll to Begin", 16, new Vector2(0, 158), new Vector2(500, 26), TextAlignmentOptions.Center, bottomAnchor, bottomAnchor);
-            TextMeshProUGUI luckyText = CreateTMPText(canvas.transform, "LuckyCalloutText", "THAYAM! (1)", 24, new Vector2(0, 190), new Vector2(600, 36), TextAlignmentOptions.Center, bottomAnchor, bottomAnchor);
+            TextMeshProUGUI comboText = CreateTMPText(canvas.transform, "ComboText", "Streak: 0 | Combo: 1.0x", 18, new Vector2(0, 16), new Vector2(400, 28), TextAlignmentOptions.Center, bottomAnchor, bottomAnchor, shivarajaFont);
+            TextMeshProUGUI lastRoll = CreateTMPText(canvas.transform, "LastRollText", "Roll to Begin", 18, new Vector2(0, 158), new Vector2(540, 28), TextAlignmentOptions.Center, bottomAnchor, bottomAnchor, shivarajaFont);
+            TextMeshProUGUI luckyText = CreateTMPText(canvas.transform, "LuckyCalloutText", "THAYAM! (1)", 26, new Vector2(0, 192), new Vector2(600, 40), TextAlignmentOptions.Center, bottomAnchor, bottomAnchor, bannerItalicFont);
             luckyText.color = Color.yellow;
-            luckyText.fontStyle = FontStyles.Bold;
+            luckyText.fontStyle = FontStyles.Bold | FontStyles.Italic;
 
             // 4. Roll Pool Container (Banked rolls positioned neatly above Roll Button)
             GameObject poolContainerGO = new GameObject("RollPoolContainer", typeof(RectTransform), typeof(HorizontalLayoutGroup));
@@ -725,14 +1079,14 @@ namespace DayakattamDungeon.Core
             Image actionBg = actionPanelGO.GetComponent<Image>();
             actionBg.color = new Color(0.06f, 0.06f, 0.10f, 0.96f);
 
-            TextMeshProUGUI promptTxt = CreateTMPText(actionPanelGO.transform, "ActionPromptText", "Choose Spirit Pawn to move:", 18, new Vector2(0, 85), new Vector2(480, 40), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            TextMeshProUGUI promptTxt = CreateTMPText(actionPanelGO.transform, "ActionPromptText", "Choose Spirit Pawn to move:", 18, new Vector2(0, 85), new Vector2(480, 40), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
             promptTxt.color = new Color(1f, 0.85f, 0.25f);
             promptTxt.fontStyle = FontStyles.Bold;
 
             Button[] actButtons = new Button[3];
             for (int i = 0; i < 3; i++)
             {
-                actButtons[i] = CreateButton(actionPanelGO.transform, $"PawnChoiceBtn_{i + 1}", $"Pawn #{i + 1}", new Vector2(0, 25 - (i * 55)), new Vector2(440, 46), 16, new Color(0.18f, 0.42f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+                actButtons[i] = CreateButton(actionPanelGO.transform, $"PawnChoiceBtn_{i + 1}", $"Pawn #{i + 1}", new Vector2(0, 25 - (i * 55)), new Vector2(440, 46), 16, new Color(0.18f, 0.42f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
             }
             actionPanelGO.SetActive(false);
 
@@ -747,18 +1101,100 @@ namespace DayakattamDungeon.Core
             Image goBg = gameOverPanelGO.GetComponent<Image>();
             goBg.color = new Color(0.04f, 0.04f, 0.08f, 0.97f);
 
-            TextMeshProUGUI goTitle = CreateTMPText(gameOverPanelGO.transform, "GameOverTitle", "VICTORY!", 30, new Vector2(0, 195), new Vector2(660, 70), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            TextMeshProUGUI goTitle = CreateTMPText(gameOverPanelGO.transform, "GameOverTitle", "VICTORY!", 42, new Vector2(0, 195), new Vector2(660, 76), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), titleFont);
             goTitle.fontStyle = FontStyles.Bold;
 
-            TextMeshProUGUI goSubtitle = CreateTMPText(gameOverPanelGO.transform, "GameOverSubtitle", "You unlocked the Sacred Palace!", 15, new Vector2(0, 95), new Vector2(640, 110), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            TextMeshProUGUI goSubtitle = CreateTMPText(gameOverPanelGO.transform, "GameOverSubtitle", "You unlocked the Sacred Palace!", 15, new Vector2(0, 95), new Vector2(640, 110), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), bodyFont);
             goSubtitle.color = new Color(0.85f, 0.85f, 0.9f);
 
-            TextMeshProUGUI goStats = CreateTMPText(gameOverPanelGO.transform, "GameOverStats", "Match Statistics...", 16, new Vector2(0, -45), new Vector2(620, 130), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            TextMeshProUGUI goStats = CreateTMPText(gameOverPanelGO.transform, "GameOverStats", "Match Statistics...", 16, new Vector2(0, -45), new Vector2(620, 130), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), bodyFont);
 
-            Button fourPlayerBtn = CreateButton(gameOverPanelGO.transform, "FourPlayerModeButton", "4-Player Mode", new Vector2(-150, -195), new Vector2(250, 50), 17, new Color(0.18f, 0.55f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
-            Button twoPlayerHardBtn = CreateButton(gameOverPanelGO.transform, "TwoPlayerHardButton", "2-Player Hard Mode", new Vector2(150, -195), new Vector2(250, 50), 17, new Color(0.65f, 0.25f, 0.22f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            Button fourPlayerBtn = CreateButton(gameOverPanelGO.transform, "FourPlayerModeButton", "4-Player Mode", new Vector2(-150, -195), new Vector2(250, 50), 17, new Color(0.18f, 0.55f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button twoPlayerHardBtn = CreateButton(gameOverPanelGO.transform, "TwoPlayerHardButton", "2-Player Hard Mode", new Vector2(150, -195), new Vector2(250, 50), 17, new Color(0.65f, 0.25f, 0.22f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
 
             gameOverPanelGO.SetActive(false);
+
+            // 7. Atmospheric Title Screen Overlay
+            GameObject titlePanelGO = new GameObject("TitleScreenPanel", typeof(RectTransform), typeof(Image));
+            titlePanelGO.transform.SetParent(canvas.transform, false);
+            RectTransform titlePanelRT = titlePanelGO.GetComponent<RectTransform>();
+            titlePanelRT.anchorMin = Vector2.zero;
+            titlePanelRT.anchorMax = Vector2.one;
+            titlePanelRT.offsetMin = Vector2.zero;
+            titlePanelRT.offsetMax = Vector2.zero;
+            titlePanelGO.GetComponent<Image>().color = new Color(0.03f, 0.03f, 0.07f, 0.88f);
+
+            GameObject titleCardGO = new GameObject("TitleCard", typeof(RectTransform), typeof(Image));
+            titleCardGO.transform.SetParent(titlePanelGO.transform, false);
+            RectTransform titleCardRT = titleCardGO.GetComponent<RectTransform>();
+            titleCardRT.anchorMin = new Vector2(0.5f, 0.5f);
+            titleCardRT.anchorMax = new Vector2(0.5f, 0.5f);
+            titleCardRT.anchoredPosition = Vector2.zero;
+            titleCardRT.sizeDelta = new Vector2(680, 490);
+            titleCardGO.GetComponent<Image>().color = new Color(0.06f, 0.05f, 0.10f, 0.96f);
+
+            TextMeshProUGUI mainTitle = CreateTMPText(titleCardGO.transform, "MainTitle", "DAYAKATTAM DUNGEON", 44, new Vector2(0, 168), new Vector2(640, 68), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), titleFont);
+            mainTitle.color = Color.white;
+            mainTitle.fontStyle = FontStyles.Bold;
+            mainTitle.enableAutoSizing = true;
+            mainTitle.fontSizeMin = 28f;
+            mainTitle.fontSizeMax = 44f;
+            mainTitle.textWrappingMode = TextWrappingModes.NoWrap;
+            mainTitle.enableVertexGradient = true;
+            mainTitle.colorGradient = new VertexGradient(
+                new Color(1f, 0.94f, 0.62f),
+                new Color(1f, 0.94f, 0.62f),
+                new Color(0.95f, 0.58f, 0.14f),
+                new Color(0.95f, 0.58f, 0.14f)
+            );
+
+            TextMeshProUGUI mainSub = CreateTMPText(titleCardGO.transform, "MainSubtitle", "The Sacred Tamil Dice Duel\nGuide all 3 Kalasam spirit pawns into the Central Palace.", 18, new Vector2(0, 80), new Vector2(580, 64), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            mainSub.color = new Color(0.88f, 0.88f, 0.94f);
+
+            Button playDuelBtn = CreateButton(titleCardGO.transform, "PlayDuelButton", "Play Duel", new Vector2(0, -10), new Vector2(320, 56), 20, new Color(0.16f, 0.54f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button titleTutorialBtn = CreateButton(titleCardGO.transform, "InteractiveTutorialButton", "Interactive Tutorial", new Vector2(0, -82), new Vector2(320, 52), 18, new Color(0.18f, 0.38f, 0.62f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button titleSettingsBtn = CreateButton(titleCardGO.transform, "TitleSettingsButton", "Settings", new Vector2(0, -152), new Vector2(320, 48), 18, new Color(0.28f, 0.28f, 0.38f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+
+            // 8. Pause & Settings Modal Panel
+            GameObject pausePanelGO = new GameObject("PauseMenuPanel", typeof(RectTransform), typeof(Image));
+            pausePanelGO.transform.SetParent(canvas.transform, false);
+            RectTransform pauseOverlayRT = pausePanelGO.GetComponent<RectTransform>();
+            pauseOverlayRT.anchorMin = Vector2.zero;
+            pauseOverlayRT.anchorMax = Vector2.one;
+            pauseOverlayRT.offsetMin = Vector2.zero;
+            pauseOverlayRT.offsetMax = Vector2.zero;
+            pausePanelGO.GetComponent<Image>().color = new Color(0.02f, 0.02f, 0.05f, 0.78f);
+
+            GameObject pauseCardGO = new GameObject("PauseCard", typeof(RectTransform), typeof(Image));
+            pauseCardGO.transform.SetParent(pausePanelGO.transform, false);
+            RectTransform pauseCardRT = pauseCardGO.GetComponent<RectTransform>();
+            pauseCardRT.anchorMin = new Vector2(0.5f, 0.5f);
+            pauseCardRT.anchorMax = new Vector2(0.5f, 0.5f);
+            pauseCardRT.anchoredPosition = Vector2.zero;
+            pauseCardRT.sizeDelta = new Vector2(560, 520);
+            pauseCardGO.GetComponent<Image>().color = new Color(0.06f, 0.06f, 0.10f, 0.97f);
+
+            TextMeshProUGUI pauseTitle = CreateTMPText(pauseCardGO.transform, "PauseTitle", "PAUSED & SETTINGS", 36, new Vector2(0, 210), new Vector2(520, 56), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), titleFont);
+            pauseTitle.color = Color.white;
+            pauseTitle.fontStyle = FontStyles.Bold;
+            pauseTitle.enableVertexGradient = true;
+            pauseTitle.colorGradient = new VertexGradient(
+                new Color(1f, 0.94f, 0.62f),
+                new Color(1f, 0.94f, 0.62f),
+                new Color(0.95f, 0.58f, 0.14f),
+                new Color(0.95f, 0.58f, 0.14f)
+            );
+
+            TextMeshProUGUI pauseVolLabel = CreateTMPText(pauseCardGO.transform, "PauseVolumeLabel", "Master Volume: 100%", 17, new Vector2(0, 148), new Vector2(420, 30), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Slider pauseVolSlider = CreateVolumeSlider(pauseCardGO.transform, new Vector2(0, 112), new Vector2(380, 26));
+
+            Button pauseMusicBtn = CreateButton(pauseCardGO.transform, "PauseMusicButton", "Music : on", new Vector2(0, 50), new Vector2(380, 44), 16, new Color(0.18f, 0.30f, 0.36f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button pauseDiffBtn = CreateButton(pauseCardGO.transform, "PauseDifficultyButton", "Grandma Difficulty: NORMAL", new Vector2(0, -6), new Vector2(380, 44), 16, new Color(0.22f, 0.32f, 0.26f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button pausePathBtn = CreateButton(pauseCardGO.transform, "PausePathButton", "Path Trail: ON", new Vector2(0, -62), new Vector2(380, 44), 16, new Color(0.16f, 0.34f, 0.44f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button pauseRestartBtn = CreateButton(pauseCardGO.transform, "PauseRestartButton", "Restart Match", new Vector2(-98, -126), new Vector2(182, 46), 16, new Color(0.45f, 0.18f, 0.18f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button pauseTitleBtn = CreateButton(pauseCardGO.transform, "PauseTitleButton", "Title Screen", new Vector2(98, -126), new Vector2(182, 46), 16, new Color(0.32f, 0.26f, 0.44f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button pauseResumeBtn = CreateButton(pauseCardGO.transform, "PauseResumeButton", "Resume", new Vector2(0, -196), new Vector2(380, 50), 18, new Color(0.16f, 0.54f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            pausePanelGO.SetActive(false);
 
             // Wire up HUD serialized fields via reflection
             SetField(hud, "turnBannerText", turnBanner);
@@ -795,12 +1231,96 @@ namespace DayakattamDungeon.Core
             SetField(hud, "waypointToggleButton", waypointBtn);
             SetField(hud, "waypointToggleText", waypointText);
             SetField(hud, "restartMatchButton", restartBtn);
+            SetField(hud, "menuButton", menuBtn);
+            SetField(hud, "titleScreenPanel", titlePanelGO);
+            SetField(hud, "titlePlayDuelButton", playDuelBtn);
+            SetField(hud, "titleTutorialButton", titleTutorialBtn);
+            SetField(hud, "titleSettingsButton", titleSettingsBtn);
+            SetField(hud, "pauseMenuPanel", pausePanelGO);
+            SetField(hud, "pauseResumeButton", pauseResumeBtn);
+            SetField(hud, "pauseVolumeSlider", pauseVolSlider);
+            SetField(hud, "pauseVolumeText", pauseVolLabel);
+            SetField(hud, "pauseMusicToggleButton", pauseMusicBtn);
+            SetField(hud, "pauseMusicToggleText", pauseMusicBtn.GetComponentInChildren<TextMeshProUGUI>());
+            SetField(hud, "pauseDifficultyButton", pauseDiffBtn);
+            SetField(hud, "pauseDifficultyText", pauseDiffBtn.GetComponentInChildren<TextMeshProUGUI>());
+            SetField(hud, "pausePathButton", pausePathBtn);
+            SetField(hud, "pausePathText", pausePathBtn.GetComponentInChildren<TextMeshProUGUI>());
+            SetField(hud, "pauseRestartButton", pauseRestartBtn);
+            SetField(hud, "pauseTitleButton", pauseTitleBtn);
 
             hud.InitializeHUD();
             hud.RefreshAllPalaceProgressUI();
         }
 
-        private TextMeshProUGUI CreateTMPText(Transform parent, string name, string content, float fontSize, Vector2 anchoredPos, Vector2 size, TextAlignmentOptions align, Vector2? aMin = null, Vector2? aMax = null)
+        private Slider CreateVolumeSlider(Transform parent, Vector2 anchoredPos, Vector2 size)
+        {
+            GameObject sliderGO = new GameObject("VolumeSlider", typeof(RectTransform), typeof(Slider));
+            sliderGO.transform.SetParent(parent, false);
+            RectTransform rt = sliderGO.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = anchoredPos;
+            rt.sizeDelta = size;
+
+            GameObject bgGO = new GameObject("Background", typeof(RectTransform), typeof(Image));
+            bgGO.transform.SetParent(sliderGO.transform, false);
+            RectTransform bgRT = bgGO.GetComponent<RectTransform>();
+            bgRT.anchorMin = new Vector2(0f, 0.25f);
+            bgRT.anchorMax = new Vector2(1f, 0.75f);
+            bgRT.offsetMin = Vector2.zero;
+            bgRT.offsetMax = Vector2.zero;
+            bgGO.GetComponent<Image>().color = new Color(0.18f, 0.18f, 0.26f);
+
+            GameObject fillAreaGO = new GameObject("Fill Area", typeof(RectTransform));
+            fillAreaGO.transform.SetParent(sliderGO.transform, false);
+            RectTransform fillAreaRT = fillAreaGO.GetComponent<RectTransform>();
+            fillAreaRT.anchorMin = new Vector2(0f, 0.25f);
+            fillAreaRT.anchorMax = new Vector2(1f, 0.75f);
+            fillAreaRT.offsetMin = Vector2.zero;
+            fillAreaRT.offsetMax = Vector2.zero;
+
+            GameObject fillGO = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            fillGO.transform.SetParent(fillAreaGO.transform, false);
+            RectTransform fillRT = fillGO.GetComponent<RectTransform>();
+            fillRT.anchorMin = Vector2.zero;
+            fillRT.anchorMax = Vector2.one;
+            fillRT.offsetMin = Vector2.zero;
+            fillRT.offsetMax = Vector2.zero;
+            fillGO.GetComponent<Image>().color = new Color(0.90f, 0.72f, 0.20f);
+
+            GameObject handleAreaGO = new GameObject("Handle Slide Area", typeof(RectTransform));
+            handleAreaGO.transform.SetParent(sliderGO.transform, false);
+            RectTransform handleAreaRT = handleAreaGO.GetComponent<RectTransform>();
+            handleAreaRT.anchorMin = Vector2.zero;
+            handleAreaRT.anchorMax = Vector2.one;
+            handleAreaRT.offsetMin = new Vector2(10f, 0f);
+            handleAreaRT.offsetMax = new Vector2(-10f, 0f);
+
+            GameObject handleGO = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+            handleGO.transform.SetParent(handleAreaGO.transform, false);
+            RectTransform handleRT = handleGO.GetComponent<RectTransform>();
+            handleRT.sizeDelta = new Vector2(22f, size.y + 4f);
+            handleGO.GetComponent<Image>().color = Color.white;
+
+            Slider slider = sliderGO.GetComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.value = 1f;
+            slider.fillRect = fillRT;
+            slider.handleRect = handleRT;
+            slider.targetGraphic = handleGO.GetComponent<Image>();
+            slider.direction = Slider.Direction.LeftToRight;
+            return slider;
+        }
+
+        private TMP_FontAsset LoadCustomFont(string fontAssetName)
+        {
+            TMP_FontAsset loaded = Resources.Load<TMP_FontAsset>($"Fonts & Materials/{fontAssetName}");
+            return loaded != null ? loaded : TMP_Settings.defaultFontAsset;
+        }
+
+        private TextMeshProUGUI CreateTMPText(Transform parent, string name, string content, float fontSize, Vector2 anchoredPos, Vector2 size, TextAlignmentOptions align, Vector2? aMin = null, Vector2? aMax = null, TMP_FontAsset customFont = null)
         {
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
@@ -811,9 +1331,10 @@ namespace DayakattamDungeon.Core
             rt.sizeDelta = size;
 
             TextMeshProUGUI txt = go.GetComponent<TextMeshProUGUI>();
-            if (TMP_Settings.defaultFontAsset != null)
+            TMP_FontAsset chosenFont = customFont != null ? customFont : TMP_Settings.defaultFontAsset;
+            if (chosenFont != null)
             {
-                txt.font = TMP_Settings.defaultFontAsset;
+                txt.font = chosenFont;
             }
             txt.text = content;
             txt.fontSize = fontSize;
@@ -822,7 +1343,7 @@ namespace DayakattamDungeon.Core
             return txt;
         }
 
-        private Button CreateButton(Transform parent, string name, string label, Vector2 anchoredPos, Vector2 size, float fontSize, Color bgColor, Vector2? aMin = null, Vector2? aMax = null)
+        private Button CreateButton(Transform parent, string name, string label, Vector2 anchoredPos, Vector2 size, float fontSize, Color bgColor, Vector2? aMin = null, Vector2? aMax = null, TMP_FontAsset customFont = null)
         {
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
@@ -835,7 +1356,7 @@ namespace DayakattamDungeon.Core
             Image img = go.GetComponent<Image>();
             img.color = bgColor;
 
-            TextMeshProUGUI txt = CreateTMPText(go.transform, "Label", label, fontSize, Vector2.zero, size, TextAlignmentOptions.Center, new Vector2(0, 0), new Vector2(1, 1));
+            TextMeshProUGUI txt = CreateTMPText(go.transform, "Label", label, fontSize, Vector2.zero, size, TextAlignmentOptions.Center, new Vector2(0, 0), new Vector2(1, 1), customFont);
             txt.color = Color.white;
             txt.raycastTarget = false; // Never block click on button
 

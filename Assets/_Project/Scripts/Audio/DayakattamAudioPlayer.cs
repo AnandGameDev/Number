@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using DayakattamDungeon.Core;
 using DayakattamDungeon.Dice;
@@ -29,8 +30,12 @@ namespace DayakattamDungeon.Audio
         private AudioClip templeBellClip;
         private AudioClip captureStrikeClip;
         private AudioClip stepHopClip;
+        private AudioClip awakenChimeClip;
+        private AudioClip palaceChimeClip;
         private AudioClip victoryFanfareClip;
         private AudioClip defeatStingClip;
+
+        private static readonly float[] HopPentatonicPitch = { 1.0f, 1.06f, 1.125f, 1.25f, 1.335f, 1.5f };
 
         private void Awake()
         {
@@ -78,9 +83,17 @@ namespace DayakattamDungeon.Audio
         {
             if (diceClackClip != null)
             {
-                audioSource.pitch = Random.Range(0.9f, 1.15f);
-                audioSource.PlayOneShot(diceClackClip, 0.7f);
+                StartCoroutine(DiceDoubleClackRoutine());
             }
+        }
+
+        private IEnumerator DiceDoubleClackRoutine()
+        {
+            audioSource.pitch = Random.Range(0.92f, 1.08f);
+            audioSource.PlayOneShot(diceClackClip, 0.7f);
+            yield return new WaitForSeconds(0.065f);
+            audioSource.pitch = Random.Range(1.05f, 1.22f);
+            audioSource.PlayOneShot(diceClackClip, 0.52f);
         }
 
         public void PlayTempleBell()
@@ -103,10 +116,34 @@ namespace DayakattamDungeon.Audio
 
         public void PlayHop()
         {
+            PlayHop(0, 1);
+        }
+
+        public void PlayHop(int stepIndex, int totalSteps)
+        {
             if (stepHopClip != null)
             {
-                audioSource.pitch = Random.Range(1.1f, 1.3f);
-                audioSource.PlayOneShot(stepHopClip, 0.4f);
+                float scalePitch = HopPentatonicPitch[Mathf.Abs(stepIndex) % HopPentatonicPitch.Length];
+                audioSource.pitch = scalePitch * Random.Range(0.98f, 1.03f);
+                audioSource.PlayOneShot(stepHopClip, 0.45f);
+            }
+        }
+
+        public void PlayAwakenChime()
+        {
+            if (awakenChimeClip != null)
+            {
+                audioSource.pitch = 1.0f;
+                audioSource.PlayOneShot(awakenChimeClip, 0.75f);
+            }
+        }
+
+        public void PlayPalaceChime()
+        {
+            if (palaceChimeClip != null)
+            {
+                audioSource.pitch = 1.0f;
+                audioSource.PlayOneShot(palaceChimeClip, 0.9f);
             }
         }
 
@@ -134,6 +171,8 @@ namespace DayakattamDungeon.Audio
             templeBellClip = CreateTempleBellClip();
             captureStrikeClip = CreateCaptureStrikeClip();
             stepHopClip = CreateHopClip();
+            awakenChimeClip = CreateAwakenChimeClip();
+            palaceChimeClip = CreatePalaceChimeClip();
             victoryFanfareClip = CreateVictoryFanfareClip();
             defeatStingClip = CreateDefeatStingClip();
         }
@@ -222,6 +261,55 @@ namespace DayakattamDungeon.Audio
             }
 
             AudioClip clip = AudioClip.Create("PawnHop", sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private AudioClip CreateAwakenChimeClip()
+        {
+            int sampleRate = 44100;
+            float duration = 0.42f;
+            int sampleCount = (int)(sampleRate * duration);
+            float[] samples = new float[sampleCount];
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                float n1 = Mathf.Sin(2f * Mathf.PI * 520f * t) * Mathf.Exp(-t * 10f);
+                float n2 = (t >= 0.08f) ? Mathf.Sin(2f * Mathf.PI * 780f * (t - 0.08f)) * Mathf.Exp(-(t - 0.08f) * 8f) : 0f;
+                samples[i] = Mathf.Clamp((n1 * 0.45f + n2 * 0.55f), -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("AwakenChime", sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
+        private AudioClip CreatePalaceChimeClip()
+        {
+            int sampleRate = 44100;
+            float duration = 1.25f;
+            int sampleCount = (int)(sampleRate * duration);
+            float[] samples = new float[sampleCount];
+            float[] freqs = { 520f, 650f, 780f };
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                float val = 0f;
+                for (int n = 0; n < freqs.Length; n++)
+                {
+                    float start = n * 0.09f;
+                    if (t >= start)
+                    {
+                        float dt = t - start;
+                        val += Mathf.Sin(2f * Mathf.PI * freqs[n] * dt) * Mathf.Exp(-dt * 3.2f) * 0.35f;
+                    }
+                }
+                samples[i] = Mathf.Clamp(val, -1f, 1f);
+            }
+
+            AudioClip clip = AudioClip.Create("PalaceChime", sampleCount, 1, sampleRate, false);
             clip.SetData(samples, 0);
             return clip;
         }

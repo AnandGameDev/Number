@@ -30,6 +30,9 @@ namespace DayakattamDungeon.Audio
         [SerializeField] private float currentBPM = 72f;
         [SerializeField] private float volume = 0.65f;
 
+        private float targetBPM = 72f;
+        private float currentComboMultiplier = 1.0f;
+
         // Procedural AudioClips
         private AudioClip clipTha;   // Deep bass thud (left head)
         private AudioClip clipDhi;   // Sharp high slap
@@ -64,6 +67,7 @@ namespace DayakattamDungeon.Audio
         private void Start()
         {
             currentBPM = baseBPM;
+            targetBPM = baseBPM;
 
             if (TurnAndStreakManager.Instance != null)
             {
@@ -71,8 +75,21 @@ namespace DayakattamDungeon.Audio
                 TurnAndStreakManager.Instance.OnStateChanged += HandleStateChanged;
             }
 
+            if (DayakattamRoller.Instance != null)
+            {
+                DayakattamRoller.Instance.OnRollCompleted += HandleRollCompleted;
+            }
+
             StartDrone();
             StartRhythm();
+        }
+
+        private void Update()
+        {
+            if (!Mathf.Approximately(currentBPM, targetBPM))
+            {
+                currentBPM = Mathf.MoveTowards(currentBPM, targetBPM, 72f * Time.deltaTime);
+            }
         }
 
         private void OnDestroy()
@@ -82,26 +99,57 @@ namespace DayakattamDungeon.Audio
                 TurnAndStreakManager.Instance.OnStreakUpdated -= HandleStreakUpdated;
                 TurnAndStreakManager.Instance.OnStateChanged -= HandleStateChanged;
             }
+
+            if (DayakattamRoller.Instance != null)
+            {
+                DayakattamRoller.Instance.OnRollCompleted -= HandleRollCompleted;
+            }
         }
 
         private void HandleStreakUpdated(int streakCount, float comboMultiplier)
         {
-            // Dynamically scale Mridangam tempo with Auspicious Streak!
+            currentComboMultiplier = Mathf.Max(1.0f, comboMultiplier);
+
+            // Dynamically scale Mridangam tempo with both Auspicious Streak and ComboMultiplier!
+            float streakBPM;
             switch (streakCount)
             {
                 case 0:
-                    currentBPM = baseBPM;
+                    streakBPM = baseBPM;
                     break;
                 case 1:
-                    currentBPM = streak1BPM;
+                    streakBPM = streak1BPM;
                     break;
                 case 2:
-                    currentBPM = streak2BPM;
+                    streakBPM = streak2BPM;
                     break;
                 default:
-                    currentBPM = streak3BPM;
+                    streakBPM = streak3BPM;
                     break;
             }
+
+            float comboBonus = Mathf.Clamp((currentComboMultiplier - 1.0f) * 8f, 0f, 16f);
+            targetBPM = Mathf.Clamp(streakBPM + comboBonus, baseBPM, 180f);
+        }
+
+        private void HandleRollCompleted(DayakattamRollResult roll)
+        {
+            if (roll.total == 12)
+            {
+                PlayLuckyAccent();
+            }
+        }
+
+        public void PlayLuckyAccent()
+        {
+            StartCoroutine(LuckyAccentRoutine());
+        }
+
+        private IEnumerator LuckyAccentRoutine()
+        {
+            PlayStroke(clipTha, 0.95f, 1.05f);
+            yield return new WaitForSeconds(0.09f);
+            PlayStroke(clipNam, 1.0f, 1.12f);
         }
 
         private void HandleStateChanged(GameState state)
@@ -109,6 +157,30 @@ namespace DayakattamDungeon.Audio
             if (state == GameState.Victory || state == GameState.Defeat)
             {
                 PlayTheermanamCadence();
+            }
+        }
+
+        public bool IsMusicEnabled => isPlayingRhythm;
+
+        public void SetMusicEnabled(bool enabled)
+        {
+            isPlayingRhythm = enabled;
+            if (droneAudioSource != null)
+            {
+                droneAudioSource.mute = !enabled;
+                if (enabled && !droneAudioSource.isPlaying && clipTamburaDrone != null)
+                {
+                    StartDrone();
+                }
+            }
+
+            if (enabled)
+            {
+                if (rhythmLoopRoutine == null) StartRhythm();
+            }
+            else
+            {
+                StopRhythm();
             }
         }
 
@@ -201,8 +273,10 @@ namespace DayakattamDungeon.Audio
         {
             if (clip == null || percussionAudioSource == null) return;
 
-            percussionAudioSource.pitch = pitch * Random.Range(0.97f, 1.03f);
-            percussionAudioSource.PlayOneShot(clip, strokeVol * volume);
+            float comboPitchBoost = 1.0f + Mathf.Clamp((currentComboMultiplier - 1.0f) * 0.04f, 0f, 0.14f);
+            float comboVolBoost = 1.0f + Mathf.Clamp((currentComboMultiplier - 1.0f) * 0.05f, 0f, 0.15f);
+            percussionAudioSource.pitch = pitch * comboPitchBoost * Random.Range(0.97f, 1.03f);
+            percussionAudioSource.PlayOneShot(clip, Mathf.Clamp01(strokeVol * volume * comboVolBoost));
         }
 
         /// <summary>

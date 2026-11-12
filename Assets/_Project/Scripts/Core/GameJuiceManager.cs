@@ -23,6 +23,9 @@ namespace DayakattamDungeon.Core
 
         private Vector3 originalCameraPosition;
         private float currentShakeIntensity = 0f;
+        private Coroutine hitStopRoutine;
+        private Material sharedJuiceMaterial;
+        private MaterialPropertyBlock propBlock;
 
         private void Awake()
         {
@@ -72,15 +75,43 @@ namespace DayakattamDungeon.Core
         /// </summary>
         public void TriggerHitStop(float duration = 0.065f)
         {
-            StartCoroutine(HitStopRoutine(duration));
+            if (hitStopRoutine != null)
+            {
+                StopCoroutine(hitStopRoutine);
+            }
+            hitStopRoutine = StartCoroutine(HitStopRoutine(duration));
         }
 
         private IEnumerator HitStopRoutine(float duration)
         {
-            float prevTimeScale = Time.timeScale;
             Time.timeScale = 0.05f;
             yield return new WaitForSecondsRealtime(duration);
-            Time.timeScale = prevTimeScale;
+            Time.timeScale = 1f;
+            hitStopRoutine = null;
+        }
+
+        private Material GetSharedJuiceMaterial()
+        {
+            if (sharedJuiceMaterial == null)
+            {
+                Shader s = Shader.Find("Sprites/Default") ?? Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+                sharedJuiceMaterial = new Material(s);
+            }
+            if (propBlock == null)
+            {
+                propBlock = new MaterialPropertyBlock();
+            }
+            return sharedJuiceMaterial;
+        }
+
+        private void ApplyRendererColor(Renderer r, Color c)
+        {
+            if (r == null) return;
+            r.sharedMaterial = GetSharedJuiceMaterial();
+            r.GetPropertyBlock(propBlock);
+            propBlock.SetColor("_Color", c);
+            propBlock.SetColor("_BaseColor", c);
+            r.SetPropertyBlock(propBlock);
         }
 
         /// <summary>
@@ -89,6 +120,17 @@ namespace DayakattamDungeon.Core
         public void SpawnFloatingText(Vector3 worldPos, string message, Color color, float scale = 1.0f)
         {
             StartCoroutine(FloatingTextRoutine(worldPos, message, color, scale));
+        }
+
+        private TMP_FontAsset shivarajaFont;
+
+        private TMP_FontAsset GetFloatingTextFont()
+        {
+            if (shivarajaFont == null)
+            {
+                shivarajaFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Shivaraja SDF");
+            }
+            return shivarajaFont != null ? shivarajaFont : TMP_Settings.defaultFontAsset;
         }
 
         private IEnumerator FloatingTextRoutine(Vector3 worldPos, string message, Color color, float targetScale)
@@ -106,7 +148,8 @@ namespace DayakattamDungeon.Core
             tmp.fontStyle = FontStyles.Bold;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = color;
-            if (TMP_Settings.defaultFontAsset != null) tmp.font = TMP_Settings.defaultFontAsset;
+            TMP_FontAsset fontAsset = GetFloatingTextFont();
+            if (fontAsset != null) tmp.font = fontAsset;
 
             float duration = 0.9f;
             float elapsed = 0f;
@@ -143,6 +186,192 @@ namespace DayakattamDungeon.Core
             StartCoroutine(SparksRoutine(worldPos, sparkColor, count));
         }
 
+        /// <summary>
+        /// Spawns an auspicious golden lotus beacon beam rising from the Sacred Palace
+        /// with ascending radiant energy rings and celebration sparks.
+        /// </summary>
+        public void SpawnPalaceBeacon(Vector3 worldPos, Color beaconColor)
+        {
+            StartCoroutine(PalaceBeaconRoutine(worldPos, beaconColor));
+        }
+
+        /// <summary>
+        /// Spawns an expanding, fading dust ring on the board surface (landing / awakening juice).
+        /// </summary>
+        public void SpawnDustRing(Vector3 worldPos, Color ringColor, float maxRadius = 0.75f, float duration = 0.30f)
+        {
+            StartCoroutine(DustRingRoutine(worldPos, ringColor, maxRadius, duration));
+        }
+
+        /// <summary>
+        /// Spawns a snappy expanding emissive flash sphere for cuts and Palace arrivals.
+        /// </summary>
+        public void SpawnImpactFlash(Vector3 worldPos, Color flashColor, float maxScale = 1.6f, float duration = 0.22f)
+        {
+            StartCoroutine(ImpactFlashRoutine(worldPos, flashColor, maxScale, duration));
+        }
+
+        private IEnumerator DustRingRoutine(Vector3 worldPos, Color color, float maxRadius, float duration)
+        {
+            const int segments = 20;
+            GameObject go = new GameObject("DustRing");
+            go.transform.position = new Vector3(worldPos.x, worldPos.y + 0.06f, worldPos.z);
+
+            LineRenderer lr = go.AddComponent<LineRenderer>();
+            lr.useWorldSpace = false;
+            lr.loop = true;
+            lr.positionCount = segments;
+            lr.startWidth = 0.09f;
+            lr.endWidth = 0.09f;
+            lr.sharedMaterial = GetSharedJuiceMaterial();
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float radius = Mathf.Lerp(0.18f, maxRadius, 1f - (1f - t) * (1f - t));
+                float alpha = color.a * (1f - t);
+
+                Color c = new Color(color.r, color.g, color.b, alpha);
+                lr.startColor = c;
+                lr.endColor = c;
+                lr.startWidth = Mathf.Lerp(0.10f, 0.02f, t);
+                lr.endWidth = lr.startWidth;
+
+                for (int i = 0; i < segments; i++)
+                {
+                    float ang = (i / (float)segments) * Mathf.PI * 2f;
+                    lr.SetPosition(i, new Vector3(Mathf.Cos(ang) * radius, 0f, Mathf.Sin(ang) * radius));
+                }
+                yield return null;
+            }
+
+            Destroy(go);
+        }
+
+        private IEnumerator ImpactFlashRoutine(Vector3 worldPos, Color color, float maxScale, float duration)
+        {
+            GameObject flash = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            flash.name = "ImpactFlash";
+            Destroy(flash.GetComponent<Collider>());
+            flash.transform.position = worldPos;
+            Renderer r = flash.GetComponent<Renderer>();
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float scale = Mathf.Lerp(0.25f, maxScale, 1f - (1f - t) * (1f - t));
+                flash.transform.localScale = Vector3.one * scale;
+                ApplyRendererColor(r, new Color(color.r, color.g, color.b, (1f - t) * 0.85f));
+                yield return null;
+            }
+
+            Destroy(flash);
+        }
+
+        private IEnumerator PalaceBeaconRoutine(Vector3 worldPos, Color color)
+        {
+            GameObject container = new GameObject("PalaceBeacon");
+            container.transform.position = worldPos;
+
+            // 1. Rising vertical golden light pillar
+            GameObject beam = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            beam.name = "BeaconColumn";
+            Destroy(beam.GetComponent<Collider>());
+            beam.transform.parent = container.transform;
+            beam.transform.position = worldPos + Vector3.up * 4.5f;
+            beam.transform.localScale = new Vector3(0.85f, 4.5f, 0.85f);
+            Renderer beamR = beam.GetComponent<Renderer>();
+            ApplyRendererColor(beamR, new Color(color.r, color.g, color.b, 0.45f));
+
+            // 2. Point light bloom at palace dais
+            GameObject lightGO = new GameObject("PalaceBeaconLight", typeof(Light));
+            lightGO.transform.parent = container.transform;
+            lightGO.transform.position = worldPos + Vector3.up * 1.5f;
+            Light pl = lightGO.GetComponent<Light>();
+            pl.type = LightType.Point;
+            pl.color = color;
+            pl.range = 8.5f;
+            pl.intensity = 2.4f;
+
+            // 3. Ground Lotus Flash & Sparks
+            SpawnImpactFlash(worldPos + Vector3.up * 0.2f, color, 2.4f, 0.35f);
+            SpawnImpactSparks(worldPos + Vector3.up * 0.2f, color, 28);
+
+            // 4. Ascending Lotus Energy Rings
+            const int ringCount = 3;
+            const int segments = 24;
+            GameObject[] rings = new GameObject[ringCount];
+            LineRenderer[] ringLRs = new LineRenderer[ringCount];
+            for (int r = 0; r < ringCount; r++)
+            {
+                rings[r] = new GameObject($"LotusRing_{r + 1}");
+                rings[r].transform.parent = container.transform;
+                rings[r].transform.position = worldPos + Vector3.up * 0.2f;
+
+                LineRenderer lr = rings[r].AddComponent<LineRenderer>();
+                lr.useWorldSpace = false;
+                lr.loop = true;
+                lr.positionCount = segments;
+                lr.startWidth = 0.12f;
+                lr.endWidth = 0.12f;
+                lr.sharedMaterial = GetSharedJuiceMaterial();
+                ringLRs[r] = lr;
+            }
+
+            float duration = 1.35f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+
+                // Beam scale pulse and alpha fade
+                float beamScaleX = Mathf.Lerp(0.95f, 0.15f, t);
+                beam.transform.localScale = new Vector3(beamScaleX, 4.5f, beamScaleX);
+                ApplyRendererColor(beamR, new Color(color.r, color.g, color.b, (1f - t) * 0.5f));
+
+                if (pl != null)
+                {
+                    pl.intensity = Mathf.Lerp(2.4f, 0f, t);
+                }
+
+                // Animate ascending rings with staggered delay
+                for (int r = 0; r < ringCount; r++)
+                {
+                    float ringDelay = r * 0.18f;
+                    if (elapsed >= ringDelay)
+                    {
+                        float ringT = Mathf.Clamp01((elapsed - ringDelay) / (duration - ringDelay));
+                        float ringY = Mathf.Lerp(0.2f, 7.5f, ringT);
+                        float radius = Mathf.Lerp(0.7f, 1.8f, ringT);
+                        float ringAlpha = (1f - ringT) * 0.85f;
+
+                        Color rc = new Color(color.r, color.g, color.b, ringAlpha);
+                        ringLRs[r].startColor = rc;
+                        ringLRs[r].endColor = rc;
+                        ringLRs[r].startWidth = Mathf.Lerp(0.14f, 0.02f, ringT);
+                        ringLRs[r].endWidth = ringLRs[r].startWidth;
+
+                        rings[r].transform.position = worldPos + Vector3.up * ringY;
+                        for (int i = 0; i < segments; i++)
+                        {
+                            float ang = (i / (float)segments) * Mathf.PI * 2f;
+                            ringLRs[r].SetPosition(i, new Vector3(Mathf.Cos(ang) * radius, 0f, Mathf.Sin(ang) * radius));
+                        }
+                    }
+                }
+
+                yield return null;
+            }
+
+            Destroy(container);
+        }
+
         private IEnumerator SparksRoutine(Vector3 worldPos, Color color, int count)
         {
             GameObject container = new GameObject("ImpactSparks");
@@ -154,12 +383,12 @@ namespace DayakattamDungeon.Core
             for (int i = 0; i < count; i++)
             {
                 GameObject spark = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                Destroy(spark.GetComponent<Collider>());
                 spark.transform.parent = container.transform;
                 spark.transform.position = worldPos + Vector3.up * 0.2f;
                 spark.transform.localScale = Vector3.one * Random.Range(0.08f, 0.16f);
 
-                Renderer r = spark.GetComponent<Renderer>();
-                r.material.color = color;
+                ApplyRendererColor(spark.GetComponent<Renderer>(), color);
 
                 sparks[i] = spark.transform;
                 velocities[i] = (Random.insideUnitSphere + Vector3.up * 1.5f) * Random.Range(2.5f, 5.0f);

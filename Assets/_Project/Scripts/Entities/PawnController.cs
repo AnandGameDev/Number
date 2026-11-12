@@ -58,6 +58,18 @@ namespace DayakattamDungeon.Entities
         public event Action<PawnController, PawnController, int> OnOpponentCaptured; // attacker, victim, spiritDamage
         public event Action<PawnController> OnPawnReachedPalace;
 
+        private void Awake()
+        {
+            if (state == PawnState.InReserve)
+            {
+                reservePosition = transform.position;
+            }
+            if (defaultScale == Vector3.zero)
+            {
+                defaultScale = transform.localScale;
+            }
+        }
+
         public void Initialize(PlayerType playerOwner, int id, Vector3 initialReservePos)
         {
             owner = playerOwner;
@@ -297,6 +309,11 @@ namespace DayakattamDungeon.Entities
                 if (currentNode != null) currentNode.UnregisterOccupant(this);
                 currentNode = entryNode;
                 currentNode.RegisterOccupant(this);
+                if (DayakattamAudioPlayer.Instance != null) DayakattamAudioPlayer.Instance.PlayAwakenChime();
+                if (GameJuiceManager.Instance != null)
+                {
+                    GameJuiceManager.Instance.SpawnDustRing(entryNode.WorldPosition, new Color(1f, 0.9f, 0.55f, 0.85f), 0.78f, 0.30f);
+                }
                 IsMoving = false;
                 onComplete?.Invoke();
             }));
@@ -337,8 +354,15 @@ namespace DayakattamDungeon.Entities
                 Vector3 targetPos = nextNode.WorldPosition + Vector3.up * 0.2f;
 
                 yield return StartCoroutine(HopToPosition(targetPos, null));
-                if (DayakattamAudioPlayer.Instance != null) DayakattamAudioPlayer.Instance.PlayHop();
-                if (GameJuiceManager.Instance != null) GameJuiceManager.Instance.TriggerShake(0.04f);
+                if (DayakattamAudioPlayer.Instance != null) DayakattamAudioPlayer.Instance.PlayHop(s - 1, steps);
+                if (GameJuiceManager.Instance != null)
+                {
+                    GameJuiceManager.Instance.TriggerShake(0.04f);
+                    if (s == steps)
+                    {
+                        GameJuiceManager.Instance.SpawnDustRing(nextNode.WorldPosition, new Color(0.95f, 0.88f, 0.7f, 0.75f), 0.72f, 0.28f);
+                    }
+                }
             }
 
             BoardNode finalNode = ThayamBoardGrid.Instance.GetNodeAtStep(owner, currentPathStep);
@@ -351,18 +375,23 @@ namespace DayakattamDungeon.Entities
                 state = PawnState.InPalace;
                 OnPawnReachedPalace?.Invoke(this);
 
+                if (DayakattamAudioPlayer.Instance != null)
+                {
+                    DayakattamAudioPlayer.Instance.PlayPalaceChime();
+                }
+
                 if (GameJuiceManager.Instance != null)
                 {
                     GameJuiceManager.Instance.TriggerShake(0.35f);
                     GameJuiceManager.Instance.SpawnFloatingText(finalNode.WorldPosition, "PALACE UNLOCKED!", new Color(1f, 0.85f, 0.2f), 1.4f);
-                    GameJuiceManager.Instance.SpawnImpactSparks(finalNode.WorldPosition, new Color(1f, 0.85f, 0.2f), 24);
+                    GameJuiceManager.Instance.SpawnPalaceBeacon(finalNode.WorldPosition, new Color(1f, 0.85f, 0.25f));
                 }
             }
             else
             {
                 if (finalNode.IsSafeTile && GameJuiceManager.Instance != null)
                 {
-                    GameJuiceManager.Instance.SpawnFloatingText(finalNode.WorldPosition, "MALAI SANCTUARY", new Color(0.4f, 0.9f, 1f), 1.0f);
+                    GameJuiceManager.Instance.SpawnFloatingText(finalNode.WorldPosition, "SANCTUARY", new Color(0.4f, 0.9f, 1f), 1.0f);
                     GameJuiceManager.Instance.SpawnImpactSparks(finalNode.WorldPosition, new Color(0.3f, 0.85f, 1f), 12);
                 }
 
@@ -402,6 +431,7 @@ namespace DayakattamDungeon.Entities
                         GameJuiceManager.Instance.TriggerShake(0.35f);
                         GameJuiceManager.Instance.TriggerHitStop(0.065f);
                         GameJuiceManager.Instance.SpawnFloatingText(node.WorldPosition, "CUT! SENT TO RESERVE!", new Color(1f, 0.35f, 0.35f), 1.35f);
+                        GameJuiceManager.Instance.SpawnImpactFlash(node.WorldPosition + Vector3.up * 0.25f, new Color(1f, 0.35f, 0.1f), 1.85f, 0.24f);
                         GameJuiceManager.Instance.SpawnImpactSparks(node.WorldPosition, new Color(1f, 0.35f, 0.1f), 24);
                     }
                     break;
@@ -461,10 +491,32 @@ namespace DayakattamDungeon.Entities
                 Vector3 current = Vector3.Lerp(startPos, targetPos, t);
                 current.y += arc;
                 transform.position = current;
+
+                // Mid-air vertical stretch
+                float stretch = Mathf.Sin(t * Mathf.PI) * 0.16f;
+                transform.localScale = new Vector3(
+                    defaultScale.x * (1f - stretch * 0.55f),
+                    defaultScale.y * (1f + stretch),
+                    defaultScale.z * (1f - stretch * 0.55f)
+                );
                 yield return null;
             }
 
             transform.position = targetPos;
+
+            // Snappy landing squash and spring back
+            float squashDur = 0.09f;
+            float sElapsed = 0f;
+            Vector3 squashedScale = new Vector3(defaultScale.x * 1.22f, defaultScale.y * 0.78f, defaultScale.z * 1.22f);
+            while (sElapsed < squashDur)
+            {
+                sElapsed += Time.deltaTime;
+                float st = Mathf.Clamp01(sElapsed / squashDur);
+                transform.localScale = Vector3.Lerp(squashedScale, defaultScale, st);
+                yield return null;
+            }
+
+            transform.localScale = defaultScale;
             onDone?.Invoke();
         }
     }

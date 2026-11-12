@@ -1,0 +1,11 @@
+<linker>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="DayakattamDungeon.Core.DayakattamSceneBootstrap" preserve="all"/>
+    <type fullname="DayakattamDungeon.Board.ThayamBoardGrid" preserve="all"/>
+    <type fullname="DayakattamDungeon.Board.BoardNode" preserve="all"/>
+    <type fullname="DayakattamDungeon.Dice.DayakattamRoller" preserve="all"/>
+    <type fullname="DayakattamDungeon.Dice.DayakattamStickVisual" preserve="all"/>
+    <type fullname="DayakattamDungeon.UI.GameHUD" preserve="all"/>
+    <type fullname="DayakattamDungeon.Environment.DiyaLamp" preserve="all"/>
+  </assembly>
+</linker>

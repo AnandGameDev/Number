@@ -144,7 +144,8 @@ PlayerSettings:
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
   bundleVersion: 1.2.3
-  preloadedAssets: []
+  preloadedAssets:
+  - {fileID: -944628639613478452, guid: 4419d82f33d36e848b3ed5af4c8da37e, type: 3}
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   m_HolographicPauseOnTrackingLoss: 1
@@ -189,7 +190,7 @@ PlayerSettings:
   CreateWallpaper: 0
   androidSplitApplicationBinary: 0
   keepLoadedShadersAlive: 0
-  StripUnusedMeshComponents: 0
+  StripUnusedMeshComponents: 1
   strictShaderVariantMatching: 0
   VertexChannelCompressionMask: 4054
   iPhoneSdkVersion: 988
@@ -531,7 +532,10 @@ PlayerSettings:
       m_Height: 720
       m_Kind: 1
       m_SubKind: 
-  m_BuildTargetBatching: []
+  m_BuildTargetBatching:
+  - m_BuildTarget: WebGL
+    m_StaticBatching: 0
+    m_DynamicBatching: 0
   m_BuildTargetShaderSettings: []
   m_BuildTargetGraphicsJobs: []
   m_BuildTargetGraphicsJobMode: []
@@ -808,7 +812,7 @@ PlayerSettings:
   blurSplashScreenBackground: 1
   spritePackerPolicy: 
   webGLMemorySize: 32
-  webGLExceptionSupport: 1
+  webGLExceptionSupport: 0
   webGLNameFilesAsHashes: 0
   webGLShowDiagnostics: 0
   webGLDataCaching: 1
@@ -833,16 +837,18 @@ PlayerSettings:
   webGLWebAssemblyTable: 0
   webGLWebAssemblyBigInt: 0
   webGLCloseOnQuit: 0
-  webWasm2023: 0
+  webWasm2023: 1
   webEnableSubmoduleStrippingCompatibility: 0
   scriptingDefineSymbols:
     Standalone: SENTIS_ANALYTICS_ENABLED;APP_UI_EDITOR_ONLY
+    WebGL: SENTIS_ANALYTICS_ENABLED;APP_UI_EDITOR_ONLY
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
     Android: 1
   il2cppCompilerConfiguration: {}
-  il2cppCodeGeneration: {}
+  il2cppCodeGeneration:
+    WebGL: 1
   il2cppStacktraceInformation: {}
   managedStrippingLevel:
     EmbeddedLinux: 1
@@ -854,7 +860,7 @@ PlayerSettings:
     QNX: 1
     Stadia: 1
     VisionOS: 1
-    WebGL: 1
+    WebGL: 3
     Windows Store Apps: 1
     XboxOne: 1
     iPhone: 1

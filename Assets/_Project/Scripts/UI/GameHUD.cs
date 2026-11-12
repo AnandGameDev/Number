@@ -90,6 +90,29 @@ namespace DayakattamDungeon.UI
         [SerializeField] private Button waypointToggleButton;
         [SerializeField] private TextMeshProUGUI waypointToggleText;
 
+        [Header("Title Screen & Pause / Settings Menu")]
+        [SerializeField] private Button menuButton;
+        [SerializeField] private GameObject titleScreenPanel;
+        [SerializeField] private Button titlePlayDuelButton;
+        [SerializeField] private Button titleTutorialButton;
+        [SerializeField] private Button titleSettingsButton;
+        [SerializeField] private GameObject pauseMenuPanel;
+        [SerializeField] private Button pauseResumeButton;
+        [SerializeField] private Slider pauseVolumeSlider;
+        [SerializeField] private TextMeshProUGUI pauseVolumeText;
+        [SerializeField] private Button pauseMusicToggleButton;
+        [SerializeField] private TextMeshProUGUI pauseMusicToggleText;
+        [SerializeField] private Button pauseDifficultyButton;
+        [SerializeField] private TextMeshProUGUI pauseDifficultyText;
+        [SerializeField] private Button pausePathButton;
+        [SerializeField] private TextMeshProUGUI pausePathText;
+        [SerializeField] private Button pauseRestartButton;
+        [SerializeField] private Button pauseTitleButton;
+
+        private const string PrefMasterVolume = "MasterVolume";
+        private float savedMasterVolume = 1f;
+        private bool openedSettingsFromTitle = false;
+
         public int SelectedRoll => selectedRollFromPool;
 
         private int selectedRollFromPool = -1;
@@ -211,14 +234,85 @@ namespace DayakattamDungeon.UI
                 waypointToggleButton.onClick.AddListener(OnWaypointToggleClicked);
             }
 
+            if (menuButton != null)
+            {
+                menuButton.onClick.RemoveListener(TogglePauseMenu);
+                menuButton.onClick.AddListener(TogglePauseMenu);
+            }
+
+            if (titlePlayDuelButton != null)
+            {
+                titlePlayDuelButton.onClick.RemoveListener(OnTitlePlayDuelClicked);
+                titlePlayDuelButton.onClick.AddListener(OnTitlePlayDuelClicked);
+            }
+
+            if (titleTutorialButton != null)
+            {
+                titleTutorialButton.onClick.RemoveListener(OnTitleTutorialClicked);
+                titleTutorialButton.onClick.AddListener(OnTitleTutorialClicked);
+            }
+
+            if (titleSettingsButton != null)
+            {
+                titleSettingsButton.onClick.RemoveListener(OnTitleSettingsClicked);
+                titleSettingsButton.onClick.AddListener(OnTitleSettingsClicked);
+            }
+
+            if (pauseResumeButton != null)
+            {
+                pauseResumeButton.onClick.RemoveListener(ClosePauseMenu);
+                pauseResumeButton.onClick.AddListener(ClosePauseMenu);
+            }
+
+            if (pauseVolumeSlider != null)
+            {
+                savedMasterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(PrefMasterVolume, 1f));
+                pauseVolumeSlider.onValueChanged.RemoveListener(OnPauseVolumeChanged);
+                pauseVolumeSlider.SetValueWithoutNotify(savedMasterVolume);
+                pauseVolumeSlider.onValueChanged.AddListener(OnPauseVolumeChanged);
+                AudioListener.volume = isAudioMuted ? 0f : savedMasterVolume;
+            }
+
+            if (pauseMusicToggleButton != null)
+            {
+                pauseMusicToggleButton.onClick.RemoveListener(OnPauseMusicToggleClicked);
+                pauseMusicToggleButton.onClick.AddListener(OnPauseMusicToggleClicked);
+            }
+
+            if (pauseDifficultyButton != null)
+            {
+                pauseDifficultyButton.onClick.RemoveListener(OnPauseDifficultyClicked);
+                pauseDifficultyButton.onClick.AddListener(OnPauseDifficultyClicked);
+            }
+
+            if (pausePathButton != null)
+            {
+                pausePathButton.onClick.RemoveListener(OnPausePathClicked);
+                pausePathButton.onClick.AddListener(OnPausePathClicked);
+            }
+
+            if (pauseRestartButton != null)
+            {
+                pauseRestartButton.onClick.RemoveListener(OnPauseRestartClicked);
+                pauseRestartButton.onClick.AddListener(OnPauseRestartClicked);
+            }
+
+            if (pauseTitleButton != null)
+            {
+                pauseTitleButton.onClick.RemoveListener(OnPauseTitleClicked);
+                pauseTitleButton.onClick.AddListener(OnPauseTitleClicked);
+            }
+
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
             if (pawnActionPanel != null) pawnActionPanel.SetActive(false);
+            if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
             if (luckyCalloutText != null) luckyCalloutText.gameObject.SetActive(false);
 
             UpdateDifficultyUI();
             UpdateAudioUI();
             UpdatePlayerModeUI();
             UpdateWaypointToggleUI();
+            UpdateSettingsModalUI();
         }
 
         public void OnPlayerModeToggleClicked()
@@ -298,8 +392,9 @@ namespace DayakattamDungeon.UI
         public void ToggleAudio()
         {
             isAudioMuted = !isAudioMuted;
-            AudioListener.volume = isAudioMuted ? 0f : 1f;
+            AudioListener.volume = isAudioMuted ? 0f : savedMasterVolume;
             UpdateAudioUI();
+            UpdateSettingsModalUI();
         }
 
         private void UpdateAudioUI()
@@ -308,6 +403,165 @@ namespace DayakattamDungeon.UI
             {
                 audioToggleText.text = isAudioMuted ? "Sound: MUTED [M]" : "Sound: ON [M]";
                 audioToggleText.color = isAudioMuted ? new Color(1f, 0.45f, 0.45f) : Color.white;
+            }
+        }
+
+        public void ShowTitleScreen()
+        {
+            Time.timeScale = 1f;
+            openedSettingsFromTitle = false;
+            if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
+            if (gameOverPanel != null) gameOverPanel.SetActive(false);
+            if (tutorialPanel != null) tutorialPanel.SetActive(false);
+            if (titleScreenPanel != null) titleScreenPanel.SetActive(true);
+        }
+
+        private void OnTitlePlayDuelClicked()
+        {
+            if (titleScreenPanel != null) titleScreenPanel.SetActive(false);
+            Time.timeScale = 1f;
+
+            if (TutorialManager.Instance != null && TutorialManager.Instance.IsTutorialActive)
+            {
+                TutorialManager.Instance.SkipTutorial();
+                return;
+            }
+
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.RestartMatch();
+            }
+        }
+
+        private void OnTitleTutorialClicked()
+        {
+            if (titleScreenPanel != null) titleScreenPanel.SetActive(false);
+            Time.timeScale = 1f;
+
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.InitializeMatch(startWithTutorial: true);
+            }
+
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.StartTutorial();
+            }
+        }
+
+        private void OnTitleSettingsClicked()
+        {
+            openedSettingsFromTitle = true;
+            if (titleScreenPanel != null) titleScreenPanel.SetActive(false);
+            OpenPauseMenu(fromTitle: true);
+        }
+
+        public void TogglePauseMenu()
+        {
+            if (pauseMenuPanel == null) return;
+            if (pauseMenuPanel.activeSelf) ClosePauseMenu();
+            else OpenPauseMenu(fromTitle: titleScreenPanel != null && titleScreenPanel.activeSelf);
+        }
+
+        public void OpenPauseMenu(bool fromTitle = false)
+        {
+            if (pauseMenuPanel == null) return;
+            openedSettingsFromTitle = fromTitle;
+            if (!fromTitle)
+            {
+                Time.timeScale = 0f;
+            }
+            UpdateSettingsModalUI();
+            pauseMenuPanel.SetActive(true);
+        }
+
+        public void ClosePauseMenu()
+        {
+            if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
+            Time.timeScale = 1f;
+            if (openedSettingsFromTitle && titleScreenPanel != null)
+            {
+                titleScreenPanel.SetActive(true);
+            }
+            openedSettingsFromTitle = false;
+        }
+
+        private void OnPauseVolumeChanged(float value)
+        {
+            savedMasterVolume = Mathf.Clamp01(value);
+            isAudioMuted = savedMasterVolume <= 0.001f;
+            AudioListener.volume = isAudioMuted ? 0f : savedMasterVolume;
+            PlayerPrefs.SetFloat(PrefMasterVolume, savedMasterVolume);
+            PlayerPrefs.Save();
+            UpdateAudioUI();
+            UpdateSettingsModalUI();
+        }
+
+        private void OnPauseMusicToggleClicked()
+        {
+            if (MridangamRhythmEngine.Instance != null)
+            {
+                MridangamRhythmEngine.Instance.SetMusicEnabled(!MridangamRhythmEngine.Instance.IsMusicEnabled);
+            }
+            UpdateSettingsModalUI();
+        }
+
+        private void OnPauseDifficultyClicked()
+        {
+            OnToggleDifficultyClicked();
+            UpdateSettingsModalUI();
+        }
+
+        private void OnPausePathClicked()
+        {
+            OnWaypointToggleClicked();
+            UpdateSettingsModalUI();
+        }
+
+        private void OnPauseRestartClicked()
+        {
+            openedSettingsFromTitle = false;
+            if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
+            if (titleScreenPanel != null) titleScreenPanel.SetActive(false);
+            Time.timeScale = 1f;
+            OnRestartMatchClicked();
+        }
+
+        private void OnPauseTitleClicked()
+        {
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.ResetAllPawnsToReserve();
+            }
+            ShowTitleScreen();
+        }
+
+        private void UpdateSettingsModalUI()
+        {
+            if (pauseVolumeText != null)
+            {
+                int pct = Mathf.RoundToInt((isAudioMuted ? 0f : savedMasterVolume) * 100f);
+                pauseVolumeText.text = $"Master Volume: {pct}%";
+            }
+
+            if (pauseMusicToggleText != null && MridangamRhythmEngine.Instance != null)
+            {
+                bool on = MridangamRhythmEngine.Instance.IsMusicEnabled;
+                pauseMusicToggleText.text = on ? "Music : on" : "Music : off";
+                pauseMusicToggleText.color = on ? new Color(0.55f, 1f, 0.7f) : new Color(1f, 0.6f, 0.6f);
+            }
+
+            if (pauseDifficultyText != null)
+            {
+                var bot = FindFirstObjectByType<BotAIController>();
+                bool isHard = bot != null && bot.Difficulty == BotDifficulty.Hard;
+                pauseDifficultyText.text = isHard ? "Grandma Difficulty: HARD" : "Grandma Difficulty: NORMAL";
+            }
+
+            if (pausePathText != null && ThayamBoardGrid.Instance != null)
+            {
+                bool shown = ThayamBoardGrid.Instance.ShowWaypointPath;
+                pausePathText.text = shown ? "Path Trail: ON" : "Path Trail: OFF";
             }
         }
 
@@ -348,15 +602,18 @@ namespace DayakattamDungeon.UI
                 switch (state)
                 {
                     case GameState.TutorialIntro:
+                        turnBannerText.enableVertexGradient = false;
                         turnBannerText.text = "SACRED INITIATION - TUTORIAL";
                         turnBannerText.color = new Color(1f, 0.85f, 0.3f);
                         break;
                     case GameState.P1_RollingPhase:
                         turnBannerText.text = "YOUR TURN: ROLL THE DAYAKATTAM!";
-                        turnBannerText.color = new Color(0.95f, 0.35f, 0.35f);
+                        turnBannerText.color = new Color(1f, 0.76f, 0.15f);
+                        turnBannerText.enableVertexGradient = true;
                         TriggerYourTurnAlert();
                         break;
                     case GameState.P1_ActionPhase:
+                        turnBannerText.enableVertexGradient = false;
                         bool canAwaken = TurnAndStreakManager.Instance != null &&
                                          TurnAndStreakManager.Instance.CurrentRollPool.Contains(1);
                         bool anyInReserve = TurnAndStreakManager.Instance != null &&
@@ -373,15 +630,16 @@ namespace DayakattamDungeon.UI
                         }
                         break;
                     case GameState.Bot_RollingPhase:
+                        turnBannerText.enableVertexGradient = false;
                         var curRollingBot = TurnAndStreakManager.Instance != null ? TurnAndStreakManager.Instance.ActivePlayer : PlayerType.Bot;
                         switch (curRollingBot)
                         {
                             case PlayerType.Player2:
-                                turnBannerText.text = "PLAYER 2 IS ROLLING...";
+                                turnBannerText.text = "MAMA IS ROLLING...";
                                 turnBannerText.color = new Color(0.35f, 0.70f, 1.0f);
                                 break;
                             case PlayerType.Player4:
-                                turnBannerText.text = "PLAYER 4 IS ROLLING...";
+                                turnBannerText.text = "DADA IS ROLLING...";
                                 turnBannerText.color = new Color(1.0f, 0.90f, 0.25f);
                                 break;
                             case PlayerType.Bot:
@@ -393,15 +651,16 @@ namespace DayakattamDungeon.UI
                         }
                         break;
                     case GameState.Bot_ActionPhase:
+                        turnBannerText.enableVertexGradient = false;
                         var curActingBot = TurnAndStreakManager.Instance != null ? TurnAndStreakManager.Instance.ActivePlayer : PlayerType.Bot;
                         switch (curActingBot)
                         {
                             case PlayerType.Player2:
-                                turnBannerText.text = "PLAYER 2 IS MOVING...";
+                                turnBannerText.text = "MAMA IS MOVING...";
                                 turnBannerText.color = new Color(0.35f, 0.70f, 1.0f);
                                 break;
                             case PlayerType.Player4:
-                                turnBannerText.text = "PLAYER 4 IS MOVING...";
+                                turnBannerText.text = "DADA IS MOVING...";
                                 turnBannerText.color = new Color(1.0f, 0.90f, 0.25f);
                                 break;
                             case PlayerType.Bot:
@@ -413,16 +672,18 @@ namespace DayakattamDungeon.UI
                         }
                         break;
                     case GameState.Victory:
+                        turnBannerText.enableVertexGradient = false;
                         turnBannerText.text = "VICTORY! YOU BESTED ALL OPPONENTS!";
                         turnBannerText.color = Color.green;
                         break;
                     case GameState.Defeat:
+                        turnBannerText.enableVertexGradient = false;
                         string winnerTitle = "GRANDMA";
                         if (TurnAndStreakManager.Instance != null)
                         {
                             int totalReq = TurnAndStreakManager.Instance.TotalPawnsPerPlayer;
-                            if (TurnAndStreakManager.Instance.P2PalaceCount >= totalReq) winnerTitle = "PLAYER 2";
-                            else if (TurnAndStreakManager.Instance.P4PalaceCount >= totalReq) winnerTitle = "PLAYER 4";
+                            if (TurnAndStreakManager.Instance.P2PalaceCount >= totalReq) winnerTitle = "MAMA";
+                            else if (TurnAndStreakManager.Instance.P4PalaceCount >= totalReq) winnerTitle = "DADA";
                         }
                         turnBannerText.text = $"DEFEAT! {winnerTitle} WON THE MATCH!";
                         turnBannerText.color = new Color(1f, 0.35f, 0.35f);
@@ -489,15 +750,13 @@ namespace DayakattamDungeon.UI
                         if (p1HealthText != null)
                         {
                             p1HealthText.text = $"P1: {inPalace}/{total}";
-                            p1HealthText.rectTransform.anchoredPosition = new Vector2(-260, -40);
                             p1HealthText.color = new Color(1.0f, 0.40f, 0.40f);
                         }
                         break;
                     case PlayerType.Player2:
                         if (p2GoalText != null)
                         {
-                            p2GoalText.text = $"P2: {inPalace}/{total}";
-                            p2GoalText.rectTransform.anchoredPosition = new Vector2(260, -40);
+                            p2GoalText.text = $"Mama: {inPalace}/{total}";
                             p2GoalText.color = new Color(0.35f, 0.70f, 1f);
                         }
                         break;
@@ -505,16 +764,14 @@ namespace DayakattamDungeon.UI
                     case PlayerType.Player3:
                         if (botHealthText != null)
                         {
-                            botHealthText.text = $"P3: {inPalace}/{total}";
-                            botHealthText.rectTransform.anchoredPosition = new Vector2(360, -40);
+                            botHealthText.text = $"Grandma: {inPalace}/{total}";
                             botHealthText.color = new Color(0.25f, 0.95f, 0.55f);
                         }
                         break;
                     case PlayerType.Player4:
                         if (p4GoalText != null)
                         {
-                            p4GoalText.text = $"P4: {inPalace}/{total}";
-                            p4GoalText.rectTransform.anchoredPosition = new Vector2(-360, -40);
+                            p4GoalText.text = $"Dada: {inPalace}/{total}";
                             p4GoalText.color = new Color(1f, 0.88f, 0.2f);
                         }
                         break;
@@ -530,7 +787,6 @@ namespace DayakattamDungeon.UI
                     if (p1HealthText != null)
                     {
                         p1HealthText.text = $"Player: {inPalace}/{total} Home";
-                        p1HealthText.rectTransform.anchoredPosition = new Vector2(-310, -40);
                         p1HealthText.color = new Color(1.0f, 0.40f, 0.40f);
                     }
                     if (p1HealthSlider != null) p1HealthSlider.value = (total > 0) ? (float)inPalace / total : 0f;
@@ -540,7 +796,6 @@ namespace DayakattamDungeon.UI
                     if (botHealthText != null)
                     {
                         botHealthText.text = $"Grandma: {inPalace}/{total} Home";
-                        botHealthText.rectTransform.anchoredPosition = new Vector2(310, -40);
                         botHealthText.color = new Color(0.25f, 0.95f, 0.55f);
                     }
                     if (botHealthSlider != null) botHealthSlider.value = (total > 0) ? (float)inPalace / total : 0f;
@@ -572,6 +827,25 @@ namespace DayakattamDungeon.UI
         {
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb == null) return;
+
+            if (kb.escapeKey.wasPressedThisFrame)
+            {
+                if (titleScreenPanel == null || !titleScreenPanel.activeInHierarchy)
+                {
+                    TogglePauseMenu();
+                }
+                else if (pauseMenuPanel != null && pauseMenuPanel.activeInHierarchy)
+                {
+                    ClosePauseMenu();
+                }
+                return;
+            }
+
+            if ((titleScreenPanel != null && titleScreenPanel.activeInHierarchy) ||
+                (pauseMenuPanel != null && pauseMenuPanel.activeInHierarchy))
+            {
+                return;
+            }
 
             // Space or R -> Roll Dayakattam
             if (kb.spaceKey.wasPressedThisFrame || kb.rKey.wasPressedThisFrame)
@@ -680,9 +954,11 @@ namespace DayakattamDungeon.UI
                     var textGO = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
                     textGO.transform.SetParent(chipGO.transform, false);
                     var txt = textGO.GetComponent<TextMeshProUGUI>();
-                    if (TMP_Settings.defaultFontAsset != null)
+                    TMP_FontAsset chipFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Bilderberg OTF SDF");
+                    if (chipFont == null) chipFont = TMP_Settings.defaultFontAsset;
+                    if (chipFont != null)
                     {
-                        txt.font = TMP_Settings.defaultFontAsset;
+                        txt.font = chipFont;
                     }
                     txt.raycastTarget = false; // Never block button click!
 
@@ -939,8 +1215,8 @@ namespace DayakattamDungeon.UI
             bool is4P = (ThayamBoardGrid.Instance != null && ThayamBoardGrid.Instance.CurrentMode == BoardPlayerMode.FourPlayers);
 
             string winnerDisplayName = isP1Winner ? "YOU" :
-                                      (winner == PlayerType.Player2) ? "PLAYER 2" :
-                                      (winner == PlayerType.Player4) ? "PLAYER 4" : "GRANDMA";
+                                      (winner == PlayerType.Player2) ? "MAMA" :
+                                      (winner == PlayerType.Player4) ? "DADA" : "GRANDMA";
 
             if (turnBannerText != null)
             {
@@ -989,9 +1265,9 @@ namespace DayakattamDungeon.UI
                 {
                     gameOverStatsText.text = $"<b>Match Result (4-Player):</b>\n" +
                         $"• P1 (You): <color=#66FF66>{TurnAndStreakManager.Instance.P1PalaceCount}/{total}</color>\n" +
-                        $"• P2 (East): <color=#55AAFF>{TurnAndStreakManager.Instance.P2PalaceCount}/{total}</color>\n" +
-                        $"• P3 (Grandma): <color=#44FF88>{TurnAndStreakManager.Instance.BotPalaceCount}/{total}</color>\n" +
-                        $"• P4 (West): <color=#FFDD44>{TurnAndStreakManager.Instance.P4PalaceCount}/{total}</color>\n" +
+                        $"• Mama (P2): <color=#55AAFF>{TurnAndStreakManager.Instance.P2PalaceCount}/{total}</color>\n" +
+                        $"• Grandma (P3): <color=#44FF88>{TurnAndStreakManager.Instance.BotPalaceCount}/{total}</color>\n" +
+                        $"• Dada (P4): <color=#FFDD44>{TurnAndStreakManager.Instance.P4PalaceCount}/{total}</color>\n" +
                         $"• Peak Auspicious Multiplier: <color=#FFD700>{TurnAndStreakManager.Instance.PeakComboMultiplier:F1}x</color>";
                 }
                 else
