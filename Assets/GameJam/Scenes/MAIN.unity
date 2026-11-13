@@ -7052,7 +7052,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b24ef1eda05e0e04f92cd224fc01e57a, type: 2}
+  - {fileID: 2100000, guid: 942eadbeed18c7a4c8440c139367b61e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -11121,7 +11121,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 1ad2d8882d9c8914cbe8f48c746340b0, type: 2}
+  - {fileID: 2100000, guid: 942eadbeed18c7a4c8440c139367b61e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -15628,7 +15628,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 455c0df2ae8e8fc4f989fd26189a0684, type: 2}
+  - {fileID: 2100000, guid: 942eadbeed18c7a4c8440c139367b61e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -19371,7 +19371,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8d4f83738c619484db43198ae530fd26, type: 2}
+  - {fileID: 2100000, guid: 942eadbeed18c7a4c8440c139367b61e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -41340,6 +41340,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73c06dad63430374181470b376463144, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DayakattamDungeon.Environment.PlayerTrayTurnIndicator
+  labelPulseAmount: 0
+  labelPulseSpeed: 2
 --- !u!4 &1877933328
 Transform:
   m_ObjectHideFlags: 0

@@ -27,6 +27,15 @@ namespace DayakattamDungeon.Environment
             }
         }
 
+        [Header("Pulsing Settings")]
+        [Tooltip("Max extra scale multiplier added when active (e.g. 0.06 = pulses between 1.0x and 1.06x).")]
+        [Range(0f, 0.3f)]
+        [SerializeField] private float labelPulseAmount = 0.05f;
+
+        [Tooltip("Speed of the pulse animation.")]
+        [Range(0.5f, 10f)]
+        [SerializeField] private float labelPulseSpeed = 2.5f;
+
         private class TrayVisualData
         {
             public PlayerType player;
@@ -153,7 +162,12 @@ namespace DayakattamDungeon.Environment
 
             if (hudLabel != null)
             {
-                data.initialLabelScale = hudLabel.transform.localScale;
+                Vector3 s = hudLabel.transform.localScale;
+                if (float.IsNaN(s.x) || float.IsNaN(s.y) || float.IsNaN(s.z) || s.sqrMagnitude < 0.001f)
+                {
+                    s = new Vector3(4f, 4f, 4f);
+                }
+                data.initialLabelScale = s;
             }
 
             // 1. Create Glowing Halo Rim around the tray
@@ -262,10 +276,20 @@ namespace DayakattamDungeon.Environment
                 // HUD Label scale pulse when active
                 if (tv.hudLabel != null)
                 {
+                    if (float.IsNaN(tv.initialLabelScale.x) || tv.initialLabelScale.sqrMagnitude < 0.001f)
+                    {
+                        tv.initialLabelScale = new Vector3(4f, 4f, 4f);
+                    }
+
                     if (isThisPlayerActive)
                     {
-                        float labelPulse = 1.0f + Mathf.PingPong(Time.time * 3f, 0.18f);
-                        tv.hudLabel.transform.localScale = tv.initialLabelScale * labelPulse;
+                        float speed = (labelPulseSpeed > 0.01f) ? labelPulseSpeed : 2.5f;
+                        float amount = (labelPulseAmount >= 0f) ? labelPulseAmount : 0.05f;
+                        float labelPulse = 1.0f + Mathf.PingPong(Time.time * speed, amount);
+                        if (!float.IsNaN(labelPulse))
+                        {
+                            tv.hudLabel.transform.localScale = tv.initialLabelScale * labelPulse;
+                        }
                     }
                     else
                     {

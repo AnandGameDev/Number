@@ -484,16 +484,16 @@ namespace DayakattamDungeon.Board
                 if (n != null) p1Path.Add(n);
             }
 
-            // Construct Player 2 (East) Path: rotated 90 deg CW
+            // Construct Player 2 (East) Path: starts at East Entry (3, 6)
             p2Path.Clear();
             for (int i = 0; i < P1_COORDS.Length; i++)
             {
-                var rot = Rotate90CW(P1_COORDS[i]);
+                var rot = RotateToEast(P1_COORDS[i]);
                 var n = gridNodes[rot.x, rot.y];
                 if (n != null) p2Path.Add(n);
             }
 
-            // Construct Player 3 / Bot (North) Path: rotated 180 deg
+            // Construct Player 3 / Bot (North) Path: rotated 180 deg, starts at North Entry (0, 3)
             p3Path.Clear();
             for (int i = 0; i < P1_COORDS.Length; i++)
             {
@@ -502,31 +502,31 @@ namespace DayakattamDungeon.Board
                 if (n != null) p3Path.Add(n);
             }
 
-            // Construct Player 4 (West) Path: rotated 270 deg CW
+            // Construct Player 4 (West) Path: starts at West Entry (3, 0)
             p4Path.Clear();
             for (int i = 0; i < P1_COORDS.Length; i++)
             {
-                var rot = Rotate270CW(P1_COORDS[i]);
+                var rot = RotateToWest(P1_COORDS[i]);
                 var n = gridNodes[rot.x, rot.y];
                 if (n != null) p4Path.Add(n);
             }
         }
 
-        private Vector2Int Rotate90CW(Vector2Int coord)
+        private Vector2Int RotateToWest(Vector2Int coord)
         {
-            // (r, c) -> (c, 6 - r)
+            // Maps South (6, 3) -> West (3, 0)
             return new Vector2Int(coord.y, 6 - coord.x);
         }
 
         private Vector2Int Rotate180(Vector2Int coord)
         {
-            // (r, c) -> (6 - r, 6 - c)
+            // Maps South (6, 3) -> North (0, 3)
             return new Vector2Int(6 - coord.x, 6 - coord.y);
         }
 
-        private Vector2Int Rotate270CW(Vector2Int coord)
+        private Vector2Int RotateToEast(Vector2Int coord)
         {
-            // (r, c) -> (6 - c, r)
+            // Maps South (6, 3) -> East (3, 6)
             return new Vector2Int(6 - coord.y, coord.x);
         }
 
