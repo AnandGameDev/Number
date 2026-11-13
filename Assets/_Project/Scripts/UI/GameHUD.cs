@@ -53,6 +53,12 @@ namespace DayakattamDungeon.UI
         [SerializeField] private RectTransform rollPoolContainer;
         [SerializeField] private GameObject rollChipPrefab;
         [SerializeField] private Button endTurnButton;
+        [SerializeField] private TMP_FontAsset tacticalNumberFont;
+
+        [Header("Typography & Chola Font Assets")]
+        [SerializeField] private TMP_FontAsset displayHeaderFont;
+        [SerializeField] private TMP_FontAsset narrativeDialogueFont;
+        [SerializeField] private TMP_FontAsset tacticalHudFont;
 
         [Header("Difficulty Controls")]
         [SerializeField] private Button difficultyToggleButton;
@@ -60,9 +66,17 @@ namespace DayakattamDungeon.UI
 
         [Header("Tutorial Overlay")]
         [SerializeField] private GameObject tutorialPanel;
+        [SerializeField] private TextMeshProUGUI speakerHeaderText;
         [SerializeField] private TextMeshProUGUI tutorialDialogueText;
         [SerializeField] private Button skipTutorialButton;
         [SerializeField] private Button restartMatchButton;
+
+        public static readonly VertexGradient CholaBronzeGradient = new VertexGradient(
+            new Color(1f, 0.8470588f, 0.4196078f, 1f), // Top-Left: #FFD86B (Temple Gold)
+            new Color(1f, 0.8470588f, 0.4196078f, 1f), // Top-Right: #FFD86B
+            new Color(0.61960786f, 0.35686275f, 0.08627451f, 1f), // Bottom-Left: #9E5B16 (Antique Bronze)
+            new Color(0.61960786f, 0.35686275f, 0.08627451f, 1f)  // Bottom-Right: #9E5B16
+        );
 
         [Header("Pawn Quick Action Bar")]
         [SerializeField] private GameObject pawnActionPanel;
@@ -306,7 +320,25 @@ namespace DayakattamDungeon.UI
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
             if (pawnActionPanel != null) pawnActionPanel.SetActive(false);
             if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
-            if (luckyCalloutText != null) luckyCalloutText.gameObject.SetActive(false);
+            if (luckyCalloutText != null)
+            {
+                luckyCalloutText.enableVertexGradient = true;
+                luckyCalloutText.colorGradient = CholaBronzeGradient;
+                luckyCalloutText.color = Color.white;
+                luckyCalloutText.gameObject.SetActive(false);
+            }
+            if (turnBannerText != null)
+            {
+                turnBannerText.enableVertexGradient = true;
+                turnBannerText.colorGradient = CholaBronzeGradient;
+                turnBannerText.color = Color.white;
+            }
+            if (comboMultiplierText != null)
+            {
+                comboMultiplierText.enableVertexGradient = true;
+                comboMultiplierText.colorGradient = CholaBronzeGradient;
+                comboMultiplierText.color = Color.white;
+            }
 
             UpdateDifficultyUI();
             UpdateAudioUI();
@@ -615,14 +647,16 @@ namespace DayakattamDungeon.UI
                         if (hasThayamInPool && hasReservePawns)
                         {
                             turnBannerText.text = "THAYAM ROLLED! 👉 TOUCH YOUR PAWN TO ENTER BOARD!";
-                            turnBannerText.color = new Color(1f, 0.88f, 0.2f);
                             turnBannerText.enableVertexGradient = true;
+                            turnBannerText.colorGradient = CholaBronzeGradient;
+                            turnBannerText.color = Color.white;
                         }
                         else
                         {
                             turnBannerText.text = "YOUR TURN: ROLL THE DAYAKATTAM!";
-                            turnBannerText.color = new Color(1f, 0.76f, 0.15f);
                             turnBannerText.enableVertexGradient = true;
+                            turnBannerText.colorGradient = CholaBronzeGradient;
+                            turnBannerText.color = Color.white;
                         }
                         TriggerYourTurnAlert();
                         break;
@@ -727,6 +761,9 @@ namespace DayakattamDungeon.UI
             if (roll.isLucky && luckyCalloutText != null)
             {
                 luckyCalloutText.gameObject.SetActive(true);
+                luckyCalloutText.enableVertexGradient = true;
+                luckyCalloutText.colorGradient = CholaBronzeGradient;
+                luckyCalloutText.color = Color.white;
                 luckyCalloutText.text = roll.total == 12 ? "PANNIRENDU! (12)\nEXTRA ROLL!" :
                                         roll.total == 1  ? "THAYAM! (1)\nSPIRIT AWAKENS!" :
                                         $"AUSPICIOUS {roll.total}!\nEXTRA ROLL!";
@@ -745,7 +782,9 @@ namespace DayakattamDungeon.UI
             if (comboMultiplierText != null)
             {
                 comboMultiplierText.text = $"Streak: {streak} | Combo: {multiplier:F1}x";
-                comboMultiplierText.color = streak > 0 ? Color.yellow : Color.white;
+                comboMultiplierText.enableVertexGradient = true;
+                comboMultiplierText.colorGradient = CholaBronzeGradient;
+                comboMultiplierText.color = Color.white;
             }
         }
 
@@ -968,7 +1007,9 @@ namespace DayakattamDungeon.UI
                     var textGO = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
                     textGO.transform.SetParent(chipGO.transform, false);
                     var txt = textGO.GetComponent<TextMeshProUGUI>();
-                    TMP_FontAsset chipFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Bilderberg OTF SDF");
+                    TMP_FontAsset chipFont = tacticalNumberFont != null ? tacticalNumberFont : tacticalHudFont;
+                    if (chipFont == null) chipFont = Resources.Load<TMP_FontAsset>("Spectral-Bold SDF");
+                    if (chipFont == null) chipFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Bilderberg OTF SDF");
                     if (chipFont == null) chipFont = TMP_Settings.defaultFontAsset;
                     if (chipFont != null)
                     {
@@ -1209,9 +1250,26 @@ namespace DayakattamDungeon.UI
             {
                 tutorialPanel.SetActive(true);
             }
+            if (speakerHeaderText != null)
+            {
+                speakerHeaderText.text = "Grandmother's Voice:";
+            }
             if (tutorialDialogueText != null)
             {
-                tutorialDialogueText.text = dialogue;
+                string cleanDialogue = dialogue;
+                if (!string.IsNullOrEmpty(cleanDialogue))
+                {
+                    if (speakerHeaderText != null && cleanDialogue.StartsWith("Grandma: "))
+                    {
+                        cleanDialogue = cleanDialogue.Substring("Grandma: ".Length);
+                    }
+                    else if (speakerHeaderText != null && cleanDialogue.StartsWith("Grandmother's Voice: "))
+                    {
+                        cleanDialogue = cleanDialogue.Substring("Grandmother's Voice: ".Length);
+                    }
+                    cleanDialogue = cleanDialogue.Replace('’', '\'').Replace('‘', '\'');
+                }
+                tutorialDialogueText.text = cleanDialogue;
             }
         }
 

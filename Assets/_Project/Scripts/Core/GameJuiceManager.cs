@@ -122,13 +122,18 @@ namespace DayakattamDungeon.Core
             StartCoroutine(FloatingTextRoutine(worldPos, message, color, scale));
         }
 
+        [Header("Font Assets")]
+        [SerializeField] private TMP_FontAsset floatingTextFont;
+
         private TMP_FontAsset shivarajaFont;
 
         private TMP_FontAsset GetFloatingTextFont()
         {
+            if (floatingTextFont != null) return floatingTextFont;
             if (shivarajaFont == null)
             {
-                shivarajaFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/Shivaraja SDF");
+                shivarajaFont = Resources.Load<TMP_FontAsset>("CinzelDecorative-Bold SDF")
+                                ?? Resources.Load<TMP_FontAsset>("Fonts & Materials/Shivaraja SDF");
             }
             return shivarajaFont != null ? shivarajaFont : TMP_Settings.defaultFontAsset;
         }

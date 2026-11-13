@@ -999,10 +999,10 @@ namespace DayakattamDungeon.Core
             turnBanner.color = new Color(1f, 0.76f, 0.15f);
             turnBanner.enableVertexGradient = true;
             turnBanner.colorGradient = new VertexGradient(
-                new Color(1f, 0f, 0.157f, 1f),
-                new Color(1f, 0f, 0f, 1f),
-                Color.white,
-                Color.white
+                new Color(1f, 0.847f, 0.420f, 1f),
+                new Color(1f, 0.847f, 0.420f, 1f),
+                new Color(0.620f, 0.357f, 0.086f, 1f),
+                new Color(0.620f, 0.357f, 0.086f, 1f)
             );
 
             TextMeshProUGUI p1HealthText = CreateTMPText(canvas.transform, "P1HealthText", "Player: 0/3 Home", 17, new Vector2(-310, -40), new Vector2(180, 35), TextAlignmentOptions.Center, topAnchor, topAnchor, uiDisplayFont);
@@ -1171,10 +1171,10 @@ namespace DayakattamDungeon.Core
             mainTitle.textWrappingMode = TextWrappingModes.NoWrap;
             mainTitle.enableVertexGradient = true;
             mainTitle.colorGradient = new VertexGradient(
-                new Color(1f, 0.94f, 0.62f),
-                new Color(1f, 0.94f, 0.62f),
-                new Color(0.95f, 0.58f, 0.14f),
-                new Color(0.95f, 0.58f, 0.14f)
+                new Color(1f, 0.847f, 0.420f, 1f),
+                new Color(1f, 0.847f, 0.420f, 1f),
+                new Color(0.620f, 0.357f, 0.086f, 1f),
+                new Color(0.620f, 0.357f, 0.086f, 1f)
             );
 
             TextMeshProUGUI mainSub = CreateTMPText(titleCardGO.transform, "MainSubtitle", "The Sacred Tamil Dice Duel\nGuide all 3 Kalasam spirit pawns into the Central Palace.", 18, new Vector2(0, 80), new Vector2(580, 64), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
@@ -1208,10 +1208,10 @@ namespace DayakattamDungeon.Core
             pauseTitle.fontStyle = FontStyles.Bold;
             pauseTitle.enableVertexGradient = true;
             pauseTitle.colorGradient = new VertexGradient(
-                new Color(1f, 0.94f, 0.62f),
-                new Color(1f, 0.94f, 0.62f),
-                new Color(0.95f, 0.58f, 0.14f),
-                new Color(0.95f, 0.58f, 0.14f)
+                new Color(1f, 0.847f, 0.420f, 1f),
+                new Color(1f, 0.847f, 0.420f, 1f),
+                new Color(0.620f, 0.357f, 0.086f, 1f),
+                new Color(0.620f, 0.357f, 0.086f, 1f)
             );
 
             TextMeshProUGUI pauseVolLabel = CreateTMPText(pauseCardGO.transform, "PauseVolumeLabel", "Master Volume: 100%", 17, new Vector2(0, 148), new Vector2(420, 30), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);

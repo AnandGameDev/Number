@@ -38,7 +38,7 @@ namespace DayakattamDungeon.EditorTools
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
             PlayerSettings.WebGL.debugSymbolMode = WebGLDebugSymbolMode.Off;
             PlayerSettings.WebGL.wasm2023 = true;
-            PlayerSettings.WebGL.template = "APPLICATION:Default";
+            PlayerSettings.WebGL.template = "PROJECT:FullscreenResponsive";
 
             UnityEditor.WebGL.UserBuildSettings.codeOptimization =
                 UnityEditor.WebGL.WasmCodeOptimization.DiskSizeLTO;
@@ -72,6 +72,31 @@ namespace DayakattamDungeon.EditorTools
             AssetDatabase.Refresh();
 
             Debug.Log("[WebOptimizer] Applied all Web release Player, Quality, URP, and Graphics settings.");
+        }
+
+        [MenuItem("Tools/Build WebGL Release")]
+        public static void BuildWebGLRelease()
+        {
+            Optimize();
+
+            string[] scenes = new string[] { "Assets/GameJam/Scenes/MAIN.unity" };
+            string buildPath = "Builds/WebGL";
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = buildPath,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None
+            };
+
+            Debug.Log($"[WebOptimizer] Starting WebGL release build to '{buildPath}'...");
+            var report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            {
+                throw new System.Exception($"WebGL build failed with {report.summary.totalErrors} errors!");
+            }
+            Debug.Log($"[WebOptimizer] WebGL release build completed successfully ({report.summary.totalSize} bytes)!");
         }
 
         private static UniversalRenderPipelineAsset EnsureWebUrpAssets()

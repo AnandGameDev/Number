@@ -131,7 +131,7 @@ namespace DayakattamDungeon.Tutorial
             // Spawn dummy bot pawn at step 15 (which is 12 steps ahead of step 3!)
             SpawnDummyBotAtStep(15);
 
-            string dialogue = "Grandma: 'Safe tiles (Malai) grant absolute immunity! Now, I have placed one of my test tokens 12 steps ahead on an open tile. Click roll [12] to cut it with your 2.0x Combo!';";
+            string dialogue = "Grandma: 'Safe tiles (Malai) grant absolute immunity! Now, I have placed one of my test tokens 12 steps ahead on an open tile. Click roll [12] to cut it with your 2.0x Combo!'";
             OnTutorialDialogueUpdated?.Invoke(currentStep, dialogue);
 
             StartCoroutine(MonitorStep4(activePawn));

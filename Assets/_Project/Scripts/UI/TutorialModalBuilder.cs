@@ -81,10 +81,10 @@ namespace DayakattamDungeon.EditorUtils
             titleTxt.color = Color.white;
             titleTxt.enableVertexGradient = true;
             titleTxt.colorGradient = new VertexGradient(
-                new Color(1f, 0.95f, 0.7f),
-                new Color(1f, 0.95f, 0.7f),
-                new Color(1f, 0.7f, 0.2f),
-                new Color(1f, 0.7f, 0.2f)
+                new Color(1f, 0.847f, 0.420f, 1f), // #FFD86B (Temple Gold)
+                new Color(1f, 0.847f, 0.420f, 1f),
+                new Color(0.620f, 0.357f, 0.086f, 1f), // #9E5B16 (Antique Bronze)
+                new Color(0.620f, 0.357f, 0.086f, 1f)
             );
             titleTxt.text = "The Sacred Tamil Dice Duel";
 
