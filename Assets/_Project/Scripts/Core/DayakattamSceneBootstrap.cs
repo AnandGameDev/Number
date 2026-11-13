@@ -675,13 +675,18 @@ namespace DayakattamDungeon.Core
             GameObject diceTrayGO = new GameObject("DiceTray");
             diceTrayGO.transform.parent = roller.transform;
             diceTrayGO.transform.position = new Vector3(7.0f, 0.05f, -1.0f);
+            var trayCol = diceTrayGO.AddComponent<BoxCollider>();
+            trayCol.center = new Vector3(0f, 0.3f, 0f);
+            trayCol.size = new Vector3(2.8f, 0.8f, 3.8f);
+            diceTrayGO.AddComponent<DayakattamDiceTapHandler>();
 
             GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             floor.name = "Floor";
             floor.transform.parent = diceTrayGO.transform;
             floor.transform.localPosition = Vector3.zero;
             floor.transform.localScale = new Vector3(2.5f, 0.08f, 3.5f);
-            Object.DestroyImmediate(floor.GetComponent<Collider>());
+            if (floor.GetComponent<BoxCollider>() == null) floor.AddComponent<BoxCollider>();
+            floor.AddComponent<DayakattamDiceTapHandler>();
             if (blackMaterial != null) floor.GetComponent<Renderer>().sharedMaterial = blackMaterial;
 
             float tw = 2.5f;
@@ -693,6 +698,14 @@ namespace DayakattamDungeon.Core
             CreateRimBeam(diceTrayGO.transform, "DiceTray_RimS", new Vector3(0, rY, -th * 0.5f), new Vector3(tw + rW * 2f, rH, rW));
             CreateRimBeam(diceTrayGO.transform, "DiceTray_RimE", new Vector3(tw * 0.5f, rY, 0), new Vector3(rW, rH, th));
             CreateRimBeam(diceTrayGO.transform, "DiceTray_RimW", new Vector3(-tw * 0.5f, rY, 0), new Vector3(rW, rH, th));
+
+            if (stickA.GetComponent<Collider>() == null) stickA.gameObject.AddComponent<BoxCollider>();
+            if (stickA.GetComponent<DayakattamDiceTapHandler>() == null) stickA.gameObject.AddComponent<DayakattamDiceTapHandler>();
+
+            if (stickB.GetComponent<Collider>() == null) stickB.gameObject.AddComponent<BoxCollider>();
+            if (stickB.GetComponent<DayakattamDiceTapHandler>() == null) stickB.gameObject.AddComponent<DayakattamDiceTapHandler>();
+
+            if (roller.GetComponent<DayakattamDiceTapHandler>() == null) roller.gameObject.AddComponent<DayakattamDiceTapHandler>();
 
             var visA = stickA.GetComponent<DayakattamStickVisual>() ?? stickA.gameObject.AddComponent<DayakattamStickVisual>();
             var visB = stickB.GetComponent<DayakattamStickVisual>() ?? stickB.gameObject.AddComponent<DayakattamStickVisual>();
@@ -710,6 +723,8 @@ namespace DayakattamDungeon.Core
             if (fB != null) fB.SetValue(roller, stickB);
             if (fACtrl != null) fACtrl.SetValue(roller, visA);
             if (fBCtrl != null) fBCtrl.SetValue(roller, visB);
+
+            roller.EnsureCollidersAndTapHandlers();
 
             return roller;
         }

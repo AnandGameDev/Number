@@ -57,6 +57,16 @@ namespace DayakattamDungeon.Dice
         private int forcedStickA = 0;
         private int forcedStickB = 0;
 
+        public bool IsTumbling
+        {
+            get
+            {
+                if (stickAController != null && stickAController.IsTumbling) return true;
+                if (stickBController != null && stickBController.IsTumbling) return true;
+                return false;
+            }
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -65,6 +75,97 @@ namespace DayakattamDungeon.Dice
                 return;
             }
             Instance = this;
+            EnsureCollidersAndTapHandlers();
+        }
+
+        private void Start()
+        {
+            EnsureCollidersAndTapHandlers();
+        }
+
+        /// <summary>
+        /// Ensures all 3D dice objects (Stick_A, Stick_B, DiceTray, Floor, rims) have
+        /// appropriate BoxColliders and DayakattamDiceTapHandler components for touch/click rolling.
+        /// </summary>
+        public void EnsureCollidersAndTapHandlers()
+        {
+            // 1. Sticks
+            if (stickAVisual != null)
+            {
+                EnsureColliderAndHandler(stickAVisual.gameObject);
+            }
+            if (stickBVisual != null)
+            {
+                EnsureColliderAndHandler(stickBVisual.gameObject);
+            }
+
+            // 2. Dice Tray & Floor
+            Transform tray = transform.Find("DiceTray");
+            if (tray != null)
+            {
+                var trayCol = tray.GetComponent<BoxCollider>();
+                if (trayCol == null)
+                {
+                    trayCol = tray.gameObject.AddComponent<BoxCollider>();
+                }
+                trayCol.center = new Vector3(0f, 0.3f, 0f);
+                trayCol.size = new Vector3(2.8f, 0.8f, 3.8f);
+
+                if (tray.GetComponent<DayakattamDiceTapHandler>() == null)
+                {
+                    tray.gameObject.AddComponent<DayakattamDiceTapHandler>();
+                }
+
+                Transform floor = tray.Find("Floor");
+                if (floor != null)
+                {
+                    EnsureColliderAndHandler(floor.gameObject);
+                }
+
+                foreach (Transform child in tray)
+                {
+                    if (child.name.StartsWith("DiceTray_Rim"))
+                    {
+                        EnsureColliderAndHandler(child.gameObject);
+                    }
+                }
+            }
+
+            // 3. Holder root
+            if (GetComponent<DayakattamDiceTapHandler>() == null)
+            {
+                gameObject.AddComponent<DayakattamDiceTapHandler>();
+            }
+        }
+
+        private void EnsureColliderAndHandler(GameObject go)
+        {
+            if (go == null) return;
+            if (go.GetComponent<Collider>() == null)
+            {
+                go.AddComponent<BoxCollider>();
+            }
+            if (go.GetComponent<DayakattamDiceTapHandler>() == null)
+            {
+                go.AddComponent<DayakattamDiceTapHandler>();
+            }
+        }
+
+        /// <summary>
+        /// Triggers visual feedback on sticks when tapping on the tray or dice holder.
+        /// </summary>
+        public void TriggerTapReaction()
+        {
+            if (stickAVisual != null && !IsTumbling)
+            {
+                var tapA = stickAVisual.GetComponent<DayakattamDiceTapHandler>();
+                if (tapA != null) tapA.TriggerJuiceBounce(stickAVisual.position);
+            }
+            if (stickBVisual != null && !IsTumbling)
+            {
+                var tapB = stickBVisual.GetComponent<DayakattamDiceTapHandler>();
+                if (tapB != null) tapB.TriggerJuiceBounce(stickBVisual.position);
+            }
         }
 
         /// <summary>
