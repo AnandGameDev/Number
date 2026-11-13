@@ -1412,7 +1412,7 @@ namespace DayakattamDungeon.UI
 
                 if (GameJuiceManager.Instance != null)
                 {
-                    GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.8f, -1.0f), "💛 SUPPORT OUR GAME & LEAVE A REVIEW! 💛", new Color(1f, 0.88f, 0.2f), scale: 1.4f, duration: 3.5f, isUserText: true);
+                    GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.8f, -1.0f), "SUPPORT OUR GAME & LEAVE A REVIEW!", new Color(1f, 0.88f, 0.2f), scale: 1.4f, duration: 3.5f, isUserText: true);
                 }
             }
             else
@@ -1548,7 +1548,7 @@ namespace DayakattamDungeon.UI
             }
             if (GameJuiceManager.Instance != null && gameOverPanel != null)
             {
-                GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.8f, -1.0f), "❤️ Thank you for your support & feedback! ❤️", new Color(1f, 0.9f, 0.2f), scale: 1.4f, duration: 3.5f, isUserText: true);
+                GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.8f, -1.0f), "Thank you for your support & feedback!", new Color(1f, 0.9f, 0.2f), scale: 1.4f, duration: 3.5f, isUserText: true);
             }
             if (DayakattamAudioPlayer.Instance != null)
             {

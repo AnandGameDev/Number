@@ -302,7 +302,7 @@ namespace DayakattamDungeon.Entities
 
             if (GameJuiceManager.Instance != null)
             {
-                GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 1.0f, "✨ PAWN AWAKENED! ✨", new Color(1f, 0.88f, 0.2f), 1.4f);
+                GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 1.0f, "PAWN AWAKENED!", new Color(1f, 0.88f, 0.2f), 1.4f);
             }
         }
 
