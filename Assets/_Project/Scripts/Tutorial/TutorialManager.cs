@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using DayakattamDungeon.Audio;
 using DayakattamDungeon.Board;
 using DayakattamDungeon.Core;
 using DayakattamDungeon.Dice;
@@ -70,6 +71,11 @@ namespace DayakattamDungeon.Tutorial
             string dialogue = "Grandma: 'Roll the sacred brass sticks, kanna! In Dayakattam, rolling 1 (Thayam) is required to awaken your spirit pawn onto the path. Auspicious rolls grant an extra roll!'";
             OnTutorialDialogueUpdated?.Invoke(currentStep, dialogue);
 
+            if (VoiceOverManager.Instance != null)
+            {
+                VoiceOverManager.Instance.PlayTutorialStep1(); // PressSpacetorollthayamsticks.ogg
+            }
+
             DayakattamRoller.Instance.OnRollCompleted -= HandleTutorialDiceRoll;
             DayakattamRoller.Instance.OnRollCompleted += HandleTutorialDiceRoll;
         }
@@ -88,6 +94,11 @@ namespace DayakattamDungeon.Tutorial
 
                 string dialogue = "Grandma: 'Thayam awakened! Notice you received an Extra Roll! Roll again to trigger an Auspicious Streak!'";
                 OnTutorialDialogueUpdated?.Invoke(currentStep, dialogue);
+
+                if (VoiceOverManager.Instance != null)
+                {
+                    VoiceOverManager.Instance.PlayTutorialStep2(); // 15612 luckyno.ogg
+                }
             }
             else if (currentStep == TutorialStep.Step2_RollStreak)
             {
@@ -106,6 +117,11 @@ namespace DayakattamDungeon.Tutorial
 
                     string dialogue = "Grandma: 'A standard roll (3) ended the streak! In the Action Phase, click roll [1] to awaken your Spirit Pawn, then spend [3] to reach the Malai (Cross) Safe Haven!'";
                     OnTutorialDialogueUpdated?.Invoke(currentStep, dialogue);
+
+                    if (VoiceOverManager.Instance != null)
+                    {
+                        VoiceOverManager.Instance.PlayTutorialStep3(); // Click pawn to move.ogg
+                    }
 
                     StartCoroutine(MonitorStep3());
                 }

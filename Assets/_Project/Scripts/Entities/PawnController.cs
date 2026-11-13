@@ -89,18 +89,32 @@ namespace DayakattamDungeon.Entities
             {
                 selectionGlow.SetActive(selected);
             }
+            if (defaultScale == Vector3.zero) defaultScale = transform.localScale;
+            transform.localScale = selected ? defaultScale * 1.15f : defaultScale;
         }
 
         public void OnPointerEnter(PointerEventData eventData)
         {
             if (owner != PlayerType.Player1 || IsMoving || isDragging) return;
-            transform.localScale = defaultScale * 1.15f;
+            if (defaultScale == Vector3.zero) defaultScale = transform.localScale;
+            transform.localScale = defaultScale * 1.25f;
+
+            if (GameHUD.Instance != null && GameHUD.Instance.SelectedRoll > 0 && ThayamBoardGrid.Instance != null)
+            {
+                ThayamBoardGrid.Instance.HighlightMovePreview(owner, GameHUD.Instance.SelectedRoll, this);
+            }
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
             if (owner != PlayerType.Player1 || IsMoving || isDragging) return;
-            transform.localScale = defaultScale;
+            bool isSelected = selectionGlow != null && selectionGlow.activeSelf;
+            transform.localScale = isSelected ? defaultScale * 1.15f : defaultScale;
+
+            if (GameHUD.Instance != null && GameHUD.Instance.SelectedRoll > 0)
+            {
+                GameHUD.Instance.RefreshHighlightsForSelectedRoll();
+            }
         }
 
         public void OnPointerClick(PointerEventData eventData)
@@ -149,6 +163,7 @@ namespace DayakattamDungeon.Entities
                     {
                         transform.position = dragStartPosition;
                         AwakenWithRoll();
+                        if (GameHUD.Instance != null) GameHUD.Instance.ClearPawnHighlights();
                         return;
                     }
                     else
@@ -184,12 +199,43 @@ namespace DayakattamDungeon.Entities
             var pool = TurnAndStreakManager.Instance.CurrentRollPool;
             var turnState = TurnAndStreakManager.Instance.CurrentState;
 
+            // Check if player selected a specific roll from RollPoolContainer
+            int selectedRoll = GameHUD.Instance != null ? GameHUD.Instance.SelectedRoll : -1;
+            if (selectedRoll > 0 && pool.Contains(selectedRoll))
+            {
+                if (!CanMove(selectedRoll))
+                {
+                    if (GameJuiceManager.Instance != null)
+                    {
+                        GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 0.8f, $"Cannot move [{selectedRoll}] steps!", new Color(1f, 0.45f, 0.45f), 1.2f);
+                    }
+                    return;
+                }
+
+                if (state == PawnState.InReserve)
+                {
+                    AwakenWithRoll();
+                }
+                else if (state == PawnState.OnBoard)
+                {
+                    TurnAndStreakManager.Instance.SpendRoll(selectedRoll, this);
+                }
+
+                if (GameHUD.Instance != null)
+                {
+                    GameHUD.Instance.ClearPawnHighlights();
+                }
+                return;
+            }
+
+            // Fallback when no roll chip was explicitly selected in HUD
             // Case A: Pawn in reserve -> If 1 (Thayam) is banked, allow immediate awakening even during rolling phase!
             if (state == PawnState.InReserve)
             {
                 if (pool.Contains(1) && (turnState == GameState.P1_ActionPhase || turnState == GameState.P1_RollingPhase || turnState == GameState.TutorialIntro))
                 {
                     AwakenWithRoll();
+                    if (GameHUD.Instance != null) GameHUD.Instance.ClearPawnHighlights();
                     return;
                 }
                 else if (!pool.Contains(1))
@@ -220,17 +266,9 @@ namespace DayakattamDungeon.Entities
                 return;
             }
 
-            // Case B: Pawn on board -> Advance
+            // Case B: Pawn on board -> Advance with first legal roll in pool
             if (state == PawnState.OnBoard)
             {
-                int selectedRoll = GameHUD.Instance != null ? GameHUD.Instance.SelectedRoll : -1;
-                if (selectedRoll > 0 && pool.Contains(selectedRoll) && CanMove(selectedRoll))
-                {
-                    TurnAndStreakManager.Instance.SpendRoll(selectedRoll, this);
-                    return;
-                }
-
-                // If no roll selected, find first legal roll in pool
                 int legalRoll = -1;
                 foreach (int r in pool)
                 {
@@ -244,6 +282,7 @@ namespace DayakattamDungeon.Entities
                 if (legalRoll > 0)
                 {
                     TurnAndStreakManager.Instance.SpendRoll(legalRoll, this);
+                    if (GameHUD.Instance != null) GameHUD.Instance.ClearPawnHighlights();
                 }
                 else
                 {
@@ -388,16 +427,26 @@ namespace DayakattamDungeon.Entities
                 if (GameJuiceManager.Instance != null)
                 {
                     GameJuiceManager.Instance.TriggerShake(0.35f);
-                    GameJuiceManager.Instance.SpawnFloatingText(finalNode.WorldPosition, "PALACE UNLOCKED!", new Color(1f, 0.85f, 0.2f), 1.4f);
+                    bool isUser = (owner == PlayerType.Player1);
+                    GameJuiceManager.Instance.SpawnFloatingText(finalNode.WorldPosition, "PALACE UNLOCKED!", new Color(1f, 0.85f, 0.2f), 1.4f, isUserText: isUser);
                     GameJuiceManager.Instance.SpawnPalaceBeacon(finalNode.WorldPosition, new Color(1f, 0.85f, 0.25f));
                 }
             }
             else
             {
-                if (finalNode.IsSafeTile && GameJuiceManager.Instance != null)
+                if (finalNode.IsSafeTile)
                 {
-                    GameJuiceManager.Instance.SpawnFloatingText(finalNode.WorldPosition, "SANCTUARY", new Color(0.4f, 0.9f, 1f), 1.0f);
-                    GameJuiceManager.Instance.SpawnImpactSparks(finalNode.WorldPosition, new Color(0.3f, 0.85f, 1f), 12);
+                    if (owner == PlayerType.Player1 && VoiceOverManager.Instance != null)
+                    {
+                        VoiceOverManager.Instance.PlayMalaiSafeAtLast();
+                    }
+
+                    if (GameJuiceManager.Instance != null)
+                    {
+                        bool isUser = (owner == PlayerType.Player1);
+                        GameJuiceManager.Instance.SpawnFloatingText(finalNode.WorldPosition, "SANCTUARY", new Color(0.4f, 0.9f, 1f), 1.0f, isUserText: isUser);
+                        GameJuiceManager.Instance.SpawnImpactSparks(finalNode.WorldPosition, new Color(0.3f, 0.85f, 1f), 12);
+                    }
                 }
 
                 // Check for opponent capture on non-Safe Tiles
@@ -433,9 +482,10 @@ namespace DayakattamDungeon.Entities
 
                     if (GameJuiceManager.Instance != null)
                     {
+                        bool isUser = (owner == PlayerType.Player1);
                         GameJuiceManager.Instance.TriggerShake(0.35f);
                         GameJuiceManager.Instance.TriggerHitStop(0.065f);
-                        GameJuiceManager.Instance.SpawnFloatingText(node.WorldPosition, "CUT! SENT TO RESERVE!", new Color(1f, 0.35f, 0.35f), 1.35f);
+                        GameJuiceManager.Instance.SpawnFloatingText(node.WorldPosition, "CUT! SENT TO RESERVE!", new Color(1f, 0.35f, 0.35f), 1.35f, isUserText: isUser);
                         GameJuiceManager.Instance.SpawnImpactFlash(node.WorldPosition + Vector3.up * 0.25f, new Color(1f, 0.35f, 0.1f), 1.85f, 0.24f);
                         GameJuiceManager.Instance.SpawnImpactSparks(node.WorldPosition, new Color(1f, 0.35f, 0.1f), 24);
                     }

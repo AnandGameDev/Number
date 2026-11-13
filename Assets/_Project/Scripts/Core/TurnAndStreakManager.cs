@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DayakattamDungeon.Audio;
 using DayakattamDungeon.Board;
 using DayakattamDungeon.Dice;
 using DayakattamDungeon.Entities;
+using DayakattamDungeon.Tutorial;
+using DayakattamDungeon.UI;
 
 namespace DayakattamDungeon.Core
 {
@@ -189,6 +192,10 @@ namespace DayakattamDungeon.Core
             }
 
             SubscribeEvents();
+            if (VoiceOverManager.Instance != null)
+            {
+                VoiceOverManager.Instance.ResetMatchPrompts();
+            }
             FirstThayamPawnIndicator.ResetMatchFlag();
             p1Health = maxSpiritHealth;
             botHealth = maxSpiritHealth;
@@ -294,6 +301,24 @@ namespace DayakattamDungeon.Core
             if (player == PlayerType.Player1)
             {
                 SetState(GameState.P1_RollingPhase);
+                bool isTutorial = TutorialManager.Instance != null && TutorialManager.Instance.IsTutorialActive;
+                bool isTitleScreen = GameHUD.Instance != null && GameHUD.Instance.IsTitleScreenActive;
+                if (!isTitleScreen)
+                {
+                    var titlePanel = GameObject.Find("TitleScreenPanel");
+                    if (titlePanel != null && titlePanel.activeInHierarchy)
+                    {
+                        isTitleScreen = true;
+                    }
+                }
+
+                if (!isTutorial && !isTitleScreen)
+                {
+                    if (VoiceOverManager.Instance != null)
+                    {
+                        VoiceOverManager.Instance.PlayPlayerTurnPrompt();
+                    }
+                }
             }
             else
             {
@@ -340,6 +365,14 @@ namespace DayakattamDungeon.Core
                 peakComboMultiplier = Mathf.Max(peakComboMultiplier, currentComboMultiplier);
                 OnStreakUpdated?.Invoke(currentStreakCount, currentComboMultiplier);
 
+                if (activePlayer == PlayerType.Player1 || currentState == GameState.TutorialIntro)
+                {
+                    if (VoiceOverManager.Instance != null)
+                    {
+                        VoiceOverManager.Instance.PlayLuckyRollVoice(roll.total);
+                    }
+                }
+
                 // Remains in current rolling phase (Player or Bot rolls again)
                 Debug.Log($"[TurnAndStreakManager] Auspicious Streak! Rolled {roll.rollName}. Multiplier is now {currentComboMultiplier}x!");
             }
@@ -350,6 +383,26 @@ namespace DayakattamDungeon.Core
                 if (activePlayer == PlayerType.Player1)
                 {
                     SetState(GameState.P1_ActionPhase);
+
+                    // Check if player has NO 1 in pool AND all pawns are locked in reserve
+                    bool allPawnsInReserve = player1Pawns.Count > 0 && player1Pawns.TrueForAll(p => p == null || p.State == PawnState.InReserve);
+                    bool hasThayam = currentRollPool.Contains(1);
+
+                    if (allPawnsInReserve && !hasThayam)
+                    {
+                        if (VoiceOverManager.Instance != null)
+                        {
+                            VoiceOverManager.Instance.PlayNeedThayamToEnter();
+                        }
+                    }
+                    else if (currentRollPool.Count > 0)
+                    {
+                        if (VoiceOverManager.Instance != null && (TutorialManager.Instance == null || !TutorialManager.Instance.IsTutorialActive))
+                        {
+                            VoiceOverManager.Instance.PlayClickPawnPrompt();
+                        }
+                    }
+
                     CheckForPlayableMoves(PlayerType.Player1);
                 }
                 else
@@ -477,6 +530,21 @@ namespace DayakattamDungeon.Core
         {
             Debug.Log($"[TurnAndStreakManager] {attacker.Owner} pawn captured and cut {victim.Owner} pawn back to reserve!");
             // Pure Dayakattam rules: Pawn is banished to reserve. No HP deduction.
+
+            if (attacker.Owner == PlayerType.Player1 && victim.Owner != PlayerType.Player1)
+            {
+                if (VoiceOverManager.Instance != null)
+                {
+                    VoiceOverManager.Instance.PlayPlayerCapture(); // nicecut.ogg
+                }
+            }
+            else if (victim.Owner == PlayerType.Player1)
+            {
+                if (VoiceOverManager.Instance != null)
+                {
+                    VoiceOverManager.Instance.PlayOpponentCapture(); // 50/50 ah ohh.ogg / ayyo.ogg
+                }
+            }
         }
 
         private void HandlePalaceArrival(PawnController pawn)
@@ -500,6 +568,14 @@ namespace DayakattamDungeon.Core
             {
                 TriggerMatchEnd(pawn.Owner);
             }
+            else
+            {
+                // Reached center Palace, but match is not won yet
+                if (pawn.Owner == PlayerType.Player1 && VoiceOverManager.Instance != null)
+                {
+                    VoiceOverManager.Instance.PlayPalamOneStepCloser(); // palam one step closer to victory.ogg
+                }
+            }
         }
 
         public void TriggerMatchEnd(PlayerType winner)
@@ -516,6 +592,10 @@ namespace DayakattamDungeon.Core
             if (winner == PlayerType.Player1)
             {
                 SetState(GameState.Victory);
+                if (VoiceOverManager.Instance != null)
+                {
+                    VoiceOverManager.Instance.PlayVictorySequence(); // you won.ogg + youhave conqured the thayam game.ogg
+                }
             }
             else
             {

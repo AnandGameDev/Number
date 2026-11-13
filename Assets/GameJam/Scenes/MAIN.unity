@@ -13422,6 +13422,10 @@ MonoBehaviour:
   challengeHardBotButton: {fileID: 380242166}
   fourPlayerModeButton: {fileID: 107303407}
   twoPlayerHardButton: {fileID: 380242166}
+  supportReviewBanner: {fileID: 0}
+  supportReviewText: {fileID: 0}
+  supportReviewButton: {fileID: 0}
+  reviewUrl: https://karkei.itch.io
   audioToggleButton: {fileID: 417258876}
   audioToggleText: {fileID: 2029543924}
   playerModeButton: {fileID: 1803029010}
@@ -35755,6 +35759,171 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1632902350}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1635924959
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1635924962}
+  - component: {fileID: 1635924961}
+  - component: {fileID: 1635924960}
+  m_Layer: 0
+  m_Name: VoiceOverManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1635924960
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1635924959}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbd3943871f0c1a4fbb62ff4c8da6781, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DayakattamDungeon.Audio.VoiceOverManager
+  audioSource: {fileID: 0}
+  voVolume: 1
+  isMuted: 0
+  clickPawnPromptCooldown: 20
+  clipNo1: {fileID: 8300000, guid: 2ecb8c96950dcbf428fcf56b8a0b1795, type: 3}
+  clipNo5: {fileID: 8300000, guid: dc1f06d386c2b884ca40553db818f9e7, type: 3}
+  clipNo6: {fileID: 8300000, guid: cb9ad691af28a40408f573113a10a854, type: 3}
+  clipNo12: {fileID: 8300000, guid: c7288dfa2936ddb4f80cd069f5dc7714, type: 3}
+  clipLuckyNumbers: {fileID: 8300000, guid: 4870316e1605137449ce63b1f352d9f8, type: 3}
+  clipPressSpaceToRoll: {fileID: 8300000, guid: 5d3eb06bd6362e34ab65de6578c32a2d,
+    type: 3}
+  clipClickPawnToMove: {fileID: 8300000, guid: 6b1c8aadfe4203348b82e667b1077270, type: 3}
+  clipYourTurn: {fileID: 8300000, guid: ff9486773bccf1e4bbca22b74924764d, type: 3}
+  clipNeedRollThayam: {fileID: 8300000, guid: 24a5daa9307d56f439e66634b30d4a6d, type: 3}
+  clipMalaiSafeAtLast: {fileID: 8300000, guid: d826bb5d2a03116418e7aa137fa5814e, type: 3}
+  clipNiceCut: {fileID: 8300000, guid: dd4203b9f5c651946a89f7ce7b9c3484, type: 3}
+  clipAhOhh: {fileID: 8300000, guid: f3ac5b0b2cf75fd4d8d2c01be76df7a8, type: 3}
+  clipAyyo: {fileID: 8300000, guid: fbc0960b8002c3f43b3876142aed56d7, type: 3}
+  clipPalamOneStepCloser: {fileID: 8300000, guid: 8923e0ef963e9e84da973e1aef9d716e,
+    type: 3}
+  clipYouWon: {fileID: 8300000, guid: 5ced44ee808a5fd4c891b331c2ac89e7, type: 3}
+  clipYouHaveConquered: {fileID: 8300000, guid: eed7fffa6ac3d3341843c8b4836eb68c,
+    type: 3}
+--- !u!82 &1635924961
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1635924959}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &1635924962
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1635924959}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1650144224
 GameObject:
   m_ObjectHideFlags: 0
@@ -49554,3 +49723,4 @@ SceneRoots:
   - {fileID: 968496839}
   - {fileID: 167125758}
   - {fileID: 1877933328}
+  - {fileID: 1635924962}

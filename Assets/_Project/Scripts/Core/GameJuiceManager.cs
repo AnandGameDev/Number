@@ -117,9 +117,32 @@ namespace DayakattamDungeon.Core
         /// <summary>
         /// Spawns a floating combat text billboard in 3D world space over a target position.
         /// </summary>
-        public void SpawnFloatingText(Vector3 worldPos, string message, Color color, float scale = 1.0f)
+        [Header("Floating Text Durations")]
+        [Tooltip("Visibility duration for user-facing floating messages (e.g. hints, alerts, rolls, pawn actions).")]
+        [SerializeField] private float userFloatingTextDuration = 2.4f;
+        [Tooltip("Visibility duration for bot/AI floating messages to keep turns snappy.")]
+        [SerializeField] private float botFloatingTextDuration = 0.9f;
+
+        public float UserFloatingTextDuration => userFloatingTextDuration;
+        public float BotFloatingTextDuration => botFloatingTextDuration;
+
+        /// <summary>
+        /// Spawns a floating combat text billboard in 3D world space over a target position.
+        /// When isUserText is true, uses userFloatingTextDuration (default 2.4s) for high readability.
+        /// Non-user / bot text uses botFloatingTextDuration (0.9s).
+        /// </summary>
+        public void SpawnFloatingText(Vector3 worldPos, string message, Color color, float scale = 1.0f, float duration = -1f, bool isUserText = true)
         {
-            StartCoroutine(FloatingTextRoutine(worldPos, message, color, scale));
+            float finalDuration = duration > 0f ? duration : (isUserText ? userFloatingTextDuration : botFloatingTextDuration);
+            StartCoroutine(FloatingTextRoutine(worldPos, message, color, scale, finalDuration));
+        }
+
+        /// <summary>
+        /// Explicit helper to spawn user-facing floating notifications with extended visibility duration.
+        /// </summary>
+        public void SpawnUserFloatingText(Vector3 worldPos, string message, Color color, float scale = 1.0f, float duration = -1f)
+        {
+            SpawnFloatingText(worldPos, message, color, scale, duration, isUserText: true);
         }
 
         [Header("Font Assets")]
@@ -138,7 +161,7 @@ namespace DayakattamDungeon.Core
             return shivarajaFont != null ? shivarajaFont : TMP_Settings.defaultFontAsset;
         }
 
-        private IEnumerator FloatingTextRoutine(Vector3 worldPos, string message, Color color, float targetScale)
+        private IEnumerator FloatingTextRoutine(Vector3 worldPos, string message, Color color, float targetScale, float duration)
         {
             GameObject go = new GameObject("FloatingText", typeof(TextMeshPro));
             go.transform.position = worldPos + Vector3.up * 0.8f;
@@ -156,10 +179,20 @@ namespace DayakattamDungeon.Core
             TMP_FontAsset fontAsset = GetFloatingTextFont();
             if (fontAsset != null) tmp.font = fontAsset;
 
-            float duration = 0.9f;
+            MeshRenderer mr = go.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                mr.sortingOrder = 100;
+            }
+
             float elapsed = 0f;
             Vector3 startPos = go.transform.position;
             Vector3 endPos = startPos + Vector3.up * 1.5f;
+
+            // Timing thresholds
+            float popInTime = Mathf.Min(0.2f, duration * 0.15f);
+            float fadeDuration = Mathf.Min(0.6f, duration * 0.35f);
+            float fadeStartTime = duration - fadeDuration;
 
             while (elapsed < duration)
             {
@@ -169,13 +202,31 @@ namespace DayakattamDungeon.Core
                 // Upward float
                 go.transform.position = Vector3.Lerp(startPos, endPos, Mathf.SmoothStep(0, 1, t));
 
-                // Scale pop (1 -> 1.25 -> 1)
-                float pop = (t < 0.2f) ? Mathf.Lerp(0.5f, 1.2f, t / 0.2f) : Mathf.Lerp(1.2f, 1.0f, (t - 0.2f) / 0.8f);
+                // Scale pop (quick punch at start then hold at 1.0)
+                float pop;
+                if (elapsed < popInTime)
+                {
+                    pop = Mathf.Lerp(0.5f, 1.15f, elapsed / popInTime);
+                }
+                else if (elapsed < popInTime * 2f)
+                {
+                    pop = Mathf.Lerp(1.15f, 1.0f, (elapsed - popInTime) / popInTime);
+                }
+                else
+                {
+                    pop = 1.0f;
+                }
                 go.transform.localScale = Vector3.one * pop;
 
-                // Alpha fade
-                float alpha = (t > 0.6f) ? Mathf.Lerp(1f, 0f, (t - 0.6f) / 0.4f) : 1f;
+                // Alpha fade: stays fully opaque until the final fadeDuration
+                float alpha = (elapsed > fadeStartTime) ? Mathf.Lerp(1f, 0f, (elapsed - fadeStartTime) / fadeDuration) : 1f;
                 tmp.color = new Color(color.r, color.g, color.b, alpha);
+
+                // Keep facing camera even if camera moves
+                if (Camera.main != null)
+                {
+                    go.transform.rotation = Camera.main.transform.rotation;
+                }
 
                 yield return null;
             }

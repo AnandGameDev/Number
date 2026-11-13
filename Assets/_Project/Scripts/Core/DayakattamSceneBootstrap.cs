@@ -146,6 +146,11 @@ namespace DayakattamDungeon.Core
                 hud.RefreshAllPalaceProgressUI();
                 hud.ShowTitleScreen();
             }
+
+            if (TurnAndStreakManager.Instance != null && hud != null && hud.IsTitleScreenActive)
+            {
+                TurnAndStreakManager.Instance.SetState(GameState.MatchSetup);
+            }
         }
 
         [ContextMenu("Build Scene Now")]
@@ -747,6 +752,16 @@ namespace DayakattamDungeon.Core
                 GameObject rhythmGO = new GameObject("MridangamRhythmEngine");
                 rhythm = rhythmGO.AddComponent<MridangamRhythmEngine>();
             }
+
+            VoiceOverManager voManager = Object.FindFirstObjectByType<VoiceOverManager>();
+            if (voManager == null)
+            {
+                GameObject voGO = new GameObject("VoiceOverManager");
+                voManager = voGO.AddComponent<VoiceOverManager>();
+            }
+#if UNITY_EDITOR
+            voManager.AutoAssignClips();
+#endif
         }
 
         private (List<PawnController>, List<PawnController>, List<PawnController>, List<PawnController>) SetupPawns()
@@ -1144,7 +1159,7 @@ namespace DayakattamDungeon.Core
             goRT.anchorMin = new Vector2(0.5f, 0.5f);
             goRT.anchorMax = new Vector2(0.5f, 0.5f);
             goRT.anchoredPosition = Vector2.zero;
-            goRT.sizeDelta = new Vector2(720, 520);
+            goRT.sizeDelta = new Vector2(720, 590);
             Image goBg = gameOverPanelGO.GetComponent<Image>();
             goBg.color = new Color(0.04f, 0.04f, 0.08f, 0.97f);
 
@@ -1156,8 +1171,8 @@ namespace DayakattamDungeon.Core
 
             TextMeshProUGUI goStats = CreateTMPText(gameOverPanelGO.transform, "GameOverStats", "Match Statistics...", 16, new Vector2(0, -45), new Vector2(620, 130), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), bodyFont);
 
-            Button fourPlayerBtn = CreateButton(gameOverPanelGO.transform, "FourPlayerModeButton", "4-Player Mode", new Vector2(-150, -195), new Vector2(250, 50), 17, new Color(0.18f, 0.55f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
-            Button twoPlayerHardBtn = CreateButton(gameOverPanelGO.transform, "TwoPlayerHardButton", "2-Player Hard Mode", new Vector2(150, -195), new Vector2(250, 50), 17, new Color(0.65f, 0.25f, 0.22f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button fourPlayerBtn = CreateButton(gameOverPanelGO.transform, "FourPlayerModeButton", "4-Player Mode", new Vector2(-150, -230), new Vector2(250, 50), 17, new Color(0.18f, 0.55f, 0.32f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
+            Button twoPlayerHardBtn = CreateButton(gameOverPanelGO.transform, "TwoPlayerHardButton", "2-Player Hard Mode", new Vector2(150, -230), new Vector2(250, 50), 17, new Color(0.65f, 0.25f, 0.22f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), uiDisplayFont);
 
             gameOverPanelGO.SetActive(false);
 

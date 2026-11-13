@@ -93,6 +93,12 @@ namespace DayakattamDungeon.UI
         [SerializeField] private Button fourPlayerModeButton;
         [SerializeField] private Button twoPlayerHardButton;
 
+        [Header("Support & Review Prompt")]
+        [SerializeField] private GameObject supportReviewBanner;
+        [SerializeField] private TextMeshProUGUI supportReviewText;
+        [SerializeField] private Button supportReviewButton;
+        [SerializeField] private string reviewUrl = "https://karkei.itch.io";
+
         [Header("Audio Settings")]
         [SerializeField] private Button audioToggleButton;
         [SerializeField] private TextMeshProUGUI audioToggleText;
@@ -128,8 +134,10 @@ namespace DayakattamDungeon.UI
         private bool openedSettingsFromTitle = false;
 
         public int SelectedRoll => selectedRollFromPool;
+        public bool IsTitleScreenActive => titleScreenPanel != null && titleScreenPanel.activeInHierarchy;
 
         private int selectedRollFromPool = -1;
+        private GameObject selectedChipGO = null;
         private readonly List<GameObject> activeRollChips = new List<GameObject>();
 
         private void Awake()
@@ -356,7 +364,7 @@ namespace DayakattamDungeon.UI
             {
                 if (GameJuiceManager.Instance != null)
                 {
-                    GameJuiceManager.Instance.SpawnFloatingText(Vector3.up * 1.5f, "Defeat Grandma in 2P mode first!", new Color(1f, 0.45f, 0.45f), 2.2f);
+                    GameJuiceManager.Instance.SpawnFloatingText(Vector3.up * 1.5f, "Defeat Grandma in 2P mode first!", new Color(1f, 0.45f, 0.45f), scale: 1.3f, duration: 2.5f, isUserText: true);
                 }
                 if (turnBannerText != null)
                 {
@@ -425,6 +433,10 @@ namespace DayakattamDungeon.UI
         {
             isAudioMuted = !isAudioMuted;
             AudioListener.volume = isAudioMuted ? 0f : savedMasterVolume;
+            if (VoiceOverManager.Instance != null)
+            {
+                VoiceOverManager.Instance.SetMuted(isAudioMuted);
+            }
             UpdateAudioUI();
             UpdateSettingsModalUI();
         }
@@ -446,6 +458,10 @@ namespace DayakattamDungeon.UI
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
             if (tutorialPanel != null) tutorialPanel.SetActive(false);
             if (titleScreenPanel != null) titleScreenPanel.SetActive(true);
+            if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.SetState(GameState.MatchSetup);
+            }
         }
 
         private void OnTitlePlayDuelClicked()
@@ -975,6 +991,8 @@ namespace DayakattamDungeon.UI
         {
             if (rollPoolContainer == null) return;
 
+            ClearPawnHighlights();
+
             // Clear previous chips immediately
             for (int c = rollPoolContainer.childCount - 1; c >= 0; c--)
             {
@@ -1050,23 +1068,40 @@ namespace DayakattamDungeon.UI
 
                 Button btn = chipGO.GetComponent<Button>();
                 int capturedVal = rollValue;
-                btn.onClick.AddListener(() => OnRollChipClicked(capturedVal));
+                GameObject capturedChip = chipGO;
+                btn.onClick.AddListener(() => OnRollChipClicked(capturedVal, capturedChip));
 
                 activeRollChips.Add(chipGO);
             }
         }
 
-        private void OnRollChipClicked(int rollValue)
+        private void OnRollChipClicked(int rollValue, GameObject chipGO = null)
         {
-            if (TurnAndStreakManager.Instance.ActivePlayer != PlayerType.Player1) return;
+            if (TurnAndStreakManager.Instance == null || TurnAndStreakManager.Instance.ActivePlayer != PlayerType.Player1) return;
 
-            selectedRollFromPool = rollValue;
+            if (chipGO == null && activeRollChips != null)
+            {
+                chipGO = activeRollChips.FirstOrDefault(c => c != null && c.name.Contains(rollValue.ToString()));
+            }
+
+            // If clicking the already selected roll chip, toggle off selection
+            if (selectedRollFromPool == rollValue && (chipGO == null || selectedChipGO == chipGO))
+            {
+                ClearPawnHighlights();
+                return;
+            }
+
+            // Deselect any previous pawn/board highlights
+            ClearPawnHighlights();
+
             var pawns = TurnAndStreakManager.Instance.Player1Pawns;
-
             List<PawnController> legalPawns = new List<PawnController>();
             foreach (var p in pawns)
             {
-                if (p.CanMove(rollValue)) legalPawns.Add(p);
+                if (p != null && p.CanMove(rollValue))
+                {
+                    legalPawns.Add(p);
+                }
             }
 
             if (legalPawns.Count == 0)
@@ -1074,111 +1109,124 @@ namespace DayakattamDungeon.UI
                 Debug.Log($"[GameHUD] No legal moves for roll [{rollValue}].");
                 if (GameJuiceManager.Instance != null && rollPoolContainer != null)
                 {
-                    GameJuiceManager.Instance.SpawnFloatingText(rollPoolContainer.position, "NO LEGAL MOVES", Color.gray, 0.9f);
+                    GameJuiceManager.Instance.SpawnFloatingText(rollPoolContainer.position, $"NO MOVES FOR [{rollValue}]", Color.gray, scale: 1.0f, duration: 2.2f, isUserText: true);
                 }
                 return;
             }
 
-            // Case 1: If all legal pawns are in reserve (Awakening), automatically awaken the first available reserve pawn!
-            bool allInReserve = legalPawns.TrueForAll(p => p.State == PawnState.InReserve);
-            if (allInReserve)
+            // Mark this roll chip as active
+            selectedRollFromPool = rollValue;
+            selectedChipGO = chipGO;
+            UpdateRollChipSelectionVisuals();
+
+            // Highlight all legal pawns in scene (glow + scale)
+            foreach (var p in legalPawns)
             {
-                if (ThayamBoardGrid.Instance != null)
-                {
-                    ThayamBoardGrid.Instance.HighlightMovePreview(PlayerType.Player1, rollValue, legalPawns[0]);
-                }
-                SpendSelectedRollOnPawn(legalPawns[0]);
-                return;
+                p.SetSelected(true);
             }
 
-            // Case 2: If only 1 legal pawn is active on board, move it directly!
-            var onBoardPawns = legalPawns.FindAll(p => p.State == PawnState.OnBoard);
-            if (onBoardPawns.Count == 1 && (rollValue != 1 || legalPawns.Count == 1))
+            // Highlight destination tiles on board
+            if (ThayamBoardGrid.Instance != null)
             {
-                if (ThayamBoardGrid.Instance != null)
-                {
-                    ThayamBoardGrid.Instance.HighlightMovePreview(PlayerType.Player1, rollValue, onBoardPawns[0]);
-                }
-                SpendSelectedRollOnPawn(onBoardPawns[0]);
-                return;
+                ThayamBoardGrid.Instance.HighlightMovePreviews(PlayerType.Player1, rollValue, legalPawns);
             }
 
-            if (legalPawns.Count == 1)
+            // Ensure PawnActionPanel remains closed - player clicks the 3D pawn directly!
+            if (pawnActionPanel != null)
             {
-                if (ThayamBoardGrid.Instance != null)
-                {
-                    ThayamBoardGrid.Instance.HighlightMovePreview(PlayerType.Player1, rollValue, legalPawns[0]);
-                }
-                SpendSelectedRollOnPawn(legalPawns[0]);
-                return;
+                pawnActionPanel.SetActive(false);
             }
 
-            // Case 3: Multiple legal options exist (e.g. choose between awakening a new pawn or advancing an active pawn)
-            ShowPawnActionPanel(legalPawns, rollValue);
+            // Audio tactile feedback
+            if (DayakattamAudioPlayer.Instance != null)
+            {
+                DayakattamAudioPlayer.Instance.PlayHop();
+            }
         }
 
-        private void ShowPawnActionPanel(List<PawnController> legalPawns, int rollValue)
+        public void ClearPawnHighlights()
         {
-            if (pawnActionPanel == null)
-            {
-                // Fallback: if panel not configured in Inspector, pick first legal pawn so player is never stuck!
-                SpendSelectedRollOnPawn(legalPawns[0]);
-                return;
-            }
-            pawnActionPanel.SetActive(true);
+            selectedRollFromPool = -1;
+            selectedChipGO = null;
 
-            if (pawnActionPromptText != null)
+            if (TurnAndStreakManager.Instance != null && TurnAndStreakManager.Instance.Player1Pawns != null)
             {
-                pawnActionPromptText.text = $"Choose Spirit Pawn to move [{rollValue}] steps:";
-            }
-
-            if (pawnActionButtons != null)
-            {
-                for (int i = 0; i < pawnActionButtons.Length; i++)
+                foreach (var p in TurnAndStreakManager.Instance.Player1Pawns)
                 {
-                    if (pawnActionButtons[i] == null) continue;
+                    if (p != null) p.SetSelected(false);
+                }
+            }
 
-                    if (i < legalPawns.Count)
-                    {
-                        pawnActionButtons[i].gameObject.SetActive(true);
-                        PawnController p = legalPawns[i];
-                        TextMeshProUGUI btnText = pawnActionButtons[i].GetComponentInChildren<TextMeshProUGUI>();
-                        if (btnText != null)
-                        {
-                            btnText.text = (p.State == PawnState.InReserve) ? $"Awaken Reserve Spirit #{p.PawnId}" : $"Advance Spirit #{p.PawnId} ({rollValue} steps)";
-                        }
+            if (ThayamBoardGrid.Instance != null)
+            {
+                ThayamBoardGrid.Instance.ClearHighlights();
+            }
 
-                        if (ThayamBoardGrid.Instance != null && i == 0)
-                        {
-                            ThayamBoardGrid.Instance.HighlightMovePreview(PlayerType.Player1, rollValue, p);
-                        }
+            if (pawnActionPanel != null && pawnActionPanel.activeSelf)
+            {
+                pawnActionPanel.SetActive(false);
+            }
 
-                        pawnActionButtons[i].onClick.RemoveAllListeners();
-                        pawnActionButtons[i].onClick.AddListener(() =>
-                        {
-                            SpendSelectedRollOnPawn(p);
-                            pawnActionPanel.SetActive(false);
-                        });
-                    }
-                    else
-                    {
-                        pawnActionButtons[i].gameObject.SetActive(false);
-                    }
+            UpdateRollChipSelectionVisuals();
+        }
+
+        public void RefreshHighlightsForSelectedRoll()
+        {
+            if (selectedRollFromPool <= 0 || TurnAndStreakManager.Instance == null) return;
+
+            var pawns = TurnAndStreakManager.Instance.Player1Pawns;
+            List<PawnController> legalPawns = new List<PawnController>();
+            foreach (var p in pawns)
+            {
+                if (p != null && p.CanMove(selectedRollFromPool))
+                {
+                    legalPawns.Add(p);
+                    p.SetSelected(true);
+                }
+                else if (p != null)
+                {
+                    p.SetSelected(false);
+                }
+            }
+
+            if (ThayamBoardGrid.Instance != null)
+            {
+                ThayamBoardGrid.Instance.HighlightMovePreviews(PlayerType.Player1, selectedRollFromPool, legalPawns);
+            }
+        }
+
+        private void UpdateRollChipSelectionVisuals()
+        {
+            for (int i = 0; i < activeRollChips.Count; i++)
+            {
+                var chip = activeRollChips[i];
+                if (chip == null) continue;
+
+                bool isSelected = (chip == selectedChipGO);
+                chip.transform.localScale = isSelected ? Vector3.one * 1.18f : Vector3.one;
+
+                var outline = chip.GetComponent<Outline>();
+                if (isSelected)
+                {
+                    if (outline == null) outline = chip.AddComponent<Outline>();
+                    outline.effectColor = new Color(1f, 0.95f, 0.2f, 1f); // Radiant Gold
+                    outline.effectDistance = new Vector2(4, -4);
+                    outline.enabled = true;
+                }
+                else if (outline != null)
+                {
+                    outline.enabled = false;
                 }
             }
         }
 
-        private void SpendSelectedRollOnPawn(PawnController pawn)
+        public void SpendSelectedRollOnPawn(PawnController pawn)
         {
             if (selectedRollFromPool > 0)
             {
-                if (ThayamBoardGrid.Instance != null)
-                {
-                    ThayamBoardGrid.Instance.ClearHighlights();
-                }
-
-                TurnAndStreakManager.Instance.SpendRoll(selectedRollFromPool, pawn);
-                selectedRollFromPool = -1;
+                int roll = selectedRollFromPool;
+                ClearPawnHighlights();
+                TurnAndStreakManager.Instance.SpendRoll(roll, pawn);
             }
         }
 
@@ -1205,7 +1253,7 @@ namespace DayakattamDungeon.UI
             // Center floating 3D alert
             if (GameJuiceManager.Instance != null)
             {
-                GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.2f, -1.5f), "YOUR TURN!", new Color(1f, 0.85f, 0.2f), 2.2f);
+                GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.2f, -1.5f), "YOUR TURN!", new Color(1f, 0.85f, 0.2f), scale: 1.5f, duration: 2.5f, isUserText: true);
                 GameJuiceManager.Instance.TriggerShake(0.08f);
             }
 
@@ -1313,13 +1361,15 @@ namespace DayakattamDungeon.UI
             {
                 if (isP1Winner)
                 {
+                    string reviewPrompt = "\n\n<color=#FFD700><b>⭐ Enjoying Dayakattam? Please support this game & leave a review!</b></color>\n<size=13><color=#C0D0E8><i>If you like the game or wanna suggest anything, feel free to let me know!</i></color></size>";
+
                     if (!is4P)
                     {
-                        gameOverSubtitleText.text = "Grandma beams with pride: 'Aha! All your spirit pawns have reached the Sacred Palace! You have mastered Dayakattam, kanna!'\n\n<color=#FFD700><b>*** UNLOCKED: 4-PLAYER MODE! ***</b></color>\n<size=15><i>You can now toggle to 4-Player Mode on the top bar to challenge all 4 quadrants!</i></size>";
+                        gameOverSubtitleText.text = "Grandma beams with pride: 'Aha! All your spirit pawns have reached the Sacred Palace! You have mastered Dayakattam, kanna!'\n\n<color=#FFD700><b>*** UNLOCKED: 4-PLAYER MODE! ***</b></color>\n<size=14><i>You can now toggle to 4-Player Mode on the top bar to challenge all 4 quadrants!</i></size>" + reviewPrompt;
                     }
                     else
                     {
-                        gameOverSubtitleText.text = "Grandma beams with pride: 'Incredible! You have conquered the 4-Player realm and guided all your spirit pawns into the Central Palace!'";
+                        gameOverSubtitleText.text = "Grandma beams with pride: 'Incredible! You have conquered the 4-Player realm and guided all your spirit pawns into the Central Palace!'" + reviewPrompt;
                     }
                 }
                 else
@@ -1351,10 +1401,158 @@ namespace DayakattamDungeon.UI
                 }
             }
 
+            // Support & Review Notification Banner on Victory
+            if (isP1Winner)
+            {
+                EnsureSupportReviewBannerCreated();
+                if (supportReviewBanner != null)
+                {
+                    supportReviewBanner.SetActive(true);
+                }
+
+                if (GameJuiceManager.Instance != null)
+                {
+                    GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.8f, -1.0f), "💛 SUPPORT OUR GAME & LEAVE A REVIEW! 💛", new Color(1f, 0.88f, 0.2f), scale: 1.4f, duration: 3.5f, isUserText: true);
+                }
+            }
+            else
+            {
+                if (supportReviewBanner != null)
+                {
+                    supportReviewBanner.SetActive(false);
+                }
+            }
+
             if (DayakattamAudioPlayer.Instance != null)
             {
                 if (isP1Winner) DayakattamAudioPlayer.Instance.PlayVictoryFanfare();
                 else DayakattamAudioPlayer.Instance.PlayDefeatSting();
+            }
+        }
+
+        private void EnsureSupportReviewBannerCreated()
+        {
+            if (gameOverPanel == null) return;
+
+            if (supportReviewBanner == null)
+            {
+                Transform existing = gameOverPanel.transform.Find("SupportReviewBanner");
+                if (existing != null)
+                {
+                    supportReviewBanner = existing.gameObject;
+                    supportReviewButton = existing.GetComponentInChildren<Button>();
+                    supportReviewText = existing.GetComponentInChildren<TextMeshProUGUI>();
+                }
+            }
+
+            if (supportReviewBanner != null) return;
+
+            // Adjust GameOverPanel size so banner fits comfortably
+            var panelRT = gameOverPanel.GetComponent<RectTransform>();
+            if (panelRT != null && panelRT.sizeDelta.y < 580)
+            {
+                panelRT.sizeDelta = new Vector2(panelRT.sizeDelta.x, 590);
+            }
+
+            // Adjust lower buttons position so they sit cleanly below the review banner
+            if (fourPlayerModeButton != null)
+            {
+                var rt = fourPlayerModeButton.GetComponent<RectTransform>();
+                if (rt != null) rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, -230);
+            }
+            if (twoPlayerHardButton != null)
+            {
+                var rt = twoPlayerHardButton.GetComponent<RectTransform>();
+                if (rt != null) rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, -230);
+            }
+
+            // Create SupportReviewBanner container
+            GameObject bannerGO = new GameObject("SupportReviewBanner", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Outline));
+            bannerGO.transform.SetParent(gameOverPanel.transform, false);
+
+            var bannerRT = bannerGO.GetComponent<RectTransform>();
+            bannerRT.anchorMin = new Vector2(0.5f, 0.5f);
+            bannerRT.anchorMax = new Vector2(0.5f, 0.5f);
+            bannerRT.pivot = new Vector2(0.5f, 0.5f);
+            bannerRT.anchoredPosition = new Vector2(0, -135);
+            bannerRT.sizeDelta = new Vector2(640, 80);
+
+            var bgImg = bannerGO.GetComponent<Image>();
+            bgImg.color = new Color(0.12f, 0.10f, 0.05f, 0.95f);
+
+            var outline = bannerGO.GetComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.82f, 0.2f, 0.85f);
+            outline.effectDistance = new Vector2(2, -2);
+
+            // Create Text
+            GameObject textGO = new GameObject("SupportText", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            textGO.transform.SetParent(bannerGO.transform, false);
+            var textRT = textGO.GetComponent<RectTransform>();
+            textRT.anchorMin = new Vector2(0, 0);
+            textRT.anchorMax = new Vector2(0.70f, 1);
+            textRT.offsetMin = new Vector2(16, 6);
+            textRT.offsetMax = new Vector2(-8, -6);
+
+            supportReviewText = textGO.GetComponent<TextMeshProUGUI>();
+            TMP_FontAsset font = narrativeDialogueFont != null ? narrativeDialogueFont : tacticalHudFont;
+            if (font == null) font = TMP_Settings.defaultFontAsset;
+            if (font != null) supportReviewText.font = font;
+            supportReviewText.text = "<b><color=#FFD700>⭐ Enjoying the game? Please support & leave a review!</color></b>\n<size=12><color=#DCE6F5><i>If you like the game or wanna suggest anything, feel free to let me know!</i></color></size>";
+            supportReviewText.fontSize = 13.5f;
+            supportReviewText.alignment = TextAlignmentOptions.MidlineLeft;
+            supportReviewText.enableWordWrapping = true;
+
+            // Create Button
+            GameObject btnGO = new GameObject("SupportReviewBtn", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            btnGO.transform.SetParent(bannerGO.transform, false);
+            var btnRT = btnGO.GetComponent<RectTransform>();
+            btnRT.anchorMin = new Vector2(0.72f, 0.15f);
+            btnRT.anchorMax = new Vector2(0.97f, 0.85f);
+            btnRT.offsetMin = Vector2.zero;
+            btnRT.offsetMax = Vector2.zero;
+
+            var btnImg = btnGO.GetComponent<Image>();
+            btnImg.color = new Color(0.78f, 0.55f, 0.15f, 1f);
+
+            supportReviewButton = btnGO.GetComponent<Button>();
+            ColorBlock cb = supportReviewButton.colors;
+            cb.highlightedColor = new Color(0.95f, 0.75f, 0.25f, 1f);
+            cb.pressedColor = new Color(0.6f, 0.4f, 0.1f, 1f);
+            supportReviewButton.colors = cb;
+            supportReviewButton.onClick.AddListener(OnSupportReviewClicked);
+
+            // Button Text
+            GameObject btnTextGO = new GameObject("BtnText", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            btnTextGO.transform.SetParent(btnGO.transform, false);
+            var btnTextRT = btnTextGO.GetComponent<RectTransform>();
+            btnTextRT.anchorMin = Vector2.zero;
+            btnTextRT.anchorMax = Vector2.one;
+            btnTextRT.offsetMin = Vector2.zero;
+            btnTextRT.offsetMax = Vector2.zero;
+
+            var btnTxt = btnTextGO.GetComponent<TextMeshProUGUI>();
+            if (font != null) btnTxt.font = font;
+            btnTxt.text = "<b>⭐ Review / Feedback</b>";
+            btnTxt.fontSize = 12.5f;
+            btnTxt.alignment = TextAlignmentOptions.Center;
+            btnTxt.color = Color.black;
+
+            supportReviewBanner = bannerGO;
+        }
+
+        private void OnSupportReviewClicked()
+        {
+            if (!string.IsNullOrEmpty(reviewUrl))
+            {
+                Application.OpenURL(reviewUrl);
+            }
+            if (GameJuiceManager.Instance != null && gameOverPanel != null)
+            {
+                GameJuiceManager.Instance.SpawnFloatingText(new Vector3(0f, 1.8f, -1.0f), "❤️ Thank you for your support & feedback! ❤️", new Color(1f, 0.9f, 0.2f), scale: 1.4f, duration: 3.5f, isUserText: true);
+            }
+            if (DayakattamAudioPlayer.Instance != null)
+            {
+                DayakattamAudioPlayer.Instance.PlayPalaceChime();
             }
         }
 

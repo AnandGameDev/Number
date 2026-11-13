@@ -235,7 +235,8 @@ namespace DayakattamDungeon.Dice
             if (isLucky && GameJuiceManager.Instance != null)
             {
                 GameJuiceManager.Instance.TriggerShake(total == 12 ? 0.28f : 0.16f);
-                GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 1.5f, rollName + "!", Color.yellow, 1.25f);
+                bool isUserRoll = TurnAndStreakManager.Instance == null || TurnAndStreakManager.Instance.ActivePlayer == DayakattamDungeon.Board.PlayerType.Player1;
+                GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 1.5f, rollName + "!", Color.yellow, 1.25f, isUserText: isUserRoll);
                 GameJuiceManager.Instance.SpawnImpactSparks(transform.position, Color.yellow, 16);
             }
 

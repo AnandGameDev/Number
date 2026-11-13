@@ -327,6 +327,46 @@ namespace DayakattamDungeon.Board
             targetNode.SetHighlight(true, highlightColor);
         }
 
+        public void HighlightMovePreviews(PlayerType player, int steps, List<PawnController> pawns)
+        {
+            ClearHighlights();
+            if (pawns == null) return;
+
+            foreach (var pawn in pawns)
+            {
+                if (pawn == null || !pawn.CanMove(steps)) continue;
+
+                int targetStep = (pawn.State == PawnState.InReserve) ? 0 : pawn.CurrentPathStep + steps;
+                BoardNode targetNode = GetNodeAtStep(player, targetStep);
+                if (targetNode == null) continue;
+
+                Color highlightColor;
+                if (targetNode.IsPalace)
+                {
+                    highlightColor = new Color(1f, 0.85f, 0.2f, 0.95f); // Radiant Gold
+                }
+                else if (targetNode.IsSafeTile)
+                {
+                    highlightColor = new Color(0.2f, 0.9f, 1f, 0.95f); // Cyan Malai Sanctuary
+                }
+                else
+                {
+                    bool hasOpponent = false;
+                    foreach (var occ in targetNode.Occupants)
+                    {
+                        if (occ != null && occ.Owner != player)
+                        {
+                            hasOpponent = true;
+                            break;
+                        }
+                    }
+                    highlightColor = hasOpponent ? new Color(1f, 0.2f, 0.2f, 0.95f) : new Color(0.2f, 1f, 0.4f, 0.9f);
+                }
+
+                targetNode.SetHighlight(true, highlightColor);
+            }
+        }
+
         #endregion
 
         #region Board Generation (Full 7x7 Grid & Waypoints)
