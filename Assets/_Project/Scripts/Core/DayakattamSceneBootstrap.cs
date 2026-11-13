@@ -699,6 +699,9 @@ namespace DayakattamDungeon.Core
             CreateRimBeam(diceTrayGO.transform, "DiceTray_RimE", new Vector3(tw * 0.5f, rY, 0), new Vector3(rW, rH, th));
             CreateRimBeam(diceTrayGO.transform, "DiceTray_RimW", new Vector3(-tw * 0.5f, rY, 0), new Vector3(rW, rH, th));
 
+            if (stickA.localScale.sqrMagnitude < 0.01f) stickA.localScale = DayakattamStickVisual.AuthenticStickScale;
+            if (stickB.localScale.sqrMagnitude < 0.01f) stickB.localScale = DayakattamStickVisual.AuthenticStickScale;
+
             if (stickA.GetComponent<Collider>() == null) stickA.gameObject.AddComponent<BoxCollider>();
             if (stickA.GetComponent<DayakattamDiceTapHandler>() == null) stickA.gameObject.AddComponent<DayakattamDiceTapHandler>();
 

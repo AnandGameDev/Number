@@ -26,8 +26,15 @@ namespace DayakattamDungeon.Dice
 
         public bool IsTumbling { get; private set; }
 
+        public static readonly Vector3 AuthenticStickScale = new Vector3(0.3029775f, 0.3029775f, 1.21191f);
+
         private void Awake()
         {
+            if (transform.localScale.sqrMagnitude < 0.01f)
+            {
+                transform.localScale = AuthenticStickScale;
+            }
+
             if (restLocalPosition == Vector3.zero)
             {
                 restLocalPosition = transform.localPosition;
@@ -41,6 +48,14 @@ namespace DayakattamDungeon.Dice
             {
                 // Initialize to face 1 (Thayam pip) facing up
                 SetFaceImmediate(1);
+            }
+        }
+
+        private void OnValidate()
+        {
+            if (transform.localScale.sqrMagnitude < 0.01f)
+            {
+                transform.localScale = AuthenticStickScale;
             }
         }
 

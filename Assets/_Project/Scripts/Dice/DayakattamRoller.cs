@@ -92,10 +92,18 @@ namespace DayakattamDungeon.Dice
             // 1. Sticks
             if (stickAVisual != null)
             {
+                if (stickAVisual.localScale.sqrMagnitude < 0.01f)
+                {
+                    stickAVisual.localScale = DayakattamStickVisual.AuthenticStickScale;
+                }
                 EnsureColliderAndHandler(stickAVisual.gameObject);
             }
             if (stickBVisual != null)
             {
+                if (stickBVisual.localScale.sqrMagnitude < 0.01f)
+                {
+                    stickBVisual.localScale = DayakattamStickVisual.AuthenticStickScale;
+                }
                 EnsureColliderAndHandler(stickBVisual.gameObject);
             }
 
@@ -156,15 +164,9 @@ namespace DayakattamDungeon.Dice
         /// </summary>
         public void TriggerTapReaction()
         {
-            if (stickAVisual != null && !IsTumbling)
+            if (GameJuiceManager.Instance != null && stickAVisual != null)
             {
-                var tapA = stickAVisual.GetComponent<DayakattamDiceTapHandler>();
-                if (tapA != null) tapA.TriggerJuiceBounce(stickAVisual.position);
-            }
-            if (stickBVisual != null && !IsTumbling)
-            {
-                var tapB = stickBVisual.GetComponent<DayakattamDiceTapHandler>();
-                if (tapB != null) tapB.TriggerJuiceBounce(stickBVisual.position);
+                GameJuiceManager.Instance.SpawnImpactSparks(stickAVisual.position + Vector3.up * 0.1f, new Color(1f, 0.88f, 0.25f), 6);
             }
         }
 
