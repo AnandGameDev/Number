@@ -24,6 +24,7 @@ namespace DayakattamDungeon.Dice
         public static bool CanPlayerRoll()
         {
             if (TurnAndStreakManager.Instance == null) return false;
+            if (DayakattamDungeon.UI.GameHUD.Instance != null && DayakattamDungeon.UI.GameHUD.Instance.IsTitleScreenActive) return false;
             if (TurnAndStreakManager.Instance.ActivePlayer != PlayerType.Player1) return false;
 
             var state = TurnAndStreakManager.Instance.CurrentState;

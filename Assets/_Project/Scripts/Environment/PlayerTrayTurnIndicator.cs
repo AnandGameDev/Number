@@ -217,6 +217,21 @@ namespace DayakattamDungeon.Environment
         {
             if (trayVisuals.Count == 0) return;
 
+            bool isGameActive = TurnAndStreakManager.Instance != null &&
+                                TurnAndStreakManager.Instance.CurrentState != GameState.MatchSetup &&
+                                (DayakattamDungeon.UI.GameHUD.Instance == null || !DayakattamDungeon.UI.GameHUD.Instance.IsTitleScreenActive);
+
+            if (!isGameActive)
+            {
+                foreach (var tv in trayVisuals)
+                {
+                    if (tv.haloGO != null && tv.haloGO.activeSelf) tv.haloGO.SetActive(false);
+                    if (tv.badgeGO != null && tv.badgeGO.activeSelf) tv.badgeGO.SetActive(false);
+                    if (tv.hudLabel != null) tv.hudLabel.transform.localScale = tv.initialLabelScale;
+                }
+                return;
+            }
+
             PlayerType activePlayer = TurnAndStreakManager.Instance != null
                 ? TurnAndStreakManager.Instance.ActivePlayer
                 : PlayerType.Player1;
@@ -307,15 +322,20 @@ namespace DayakattamDungeon.Environment
         public void UpdateActiveTrayVisuals()
         {
             if (TurnAndStreakManager.Instance == null) return;
+
+            bool isGameActive = TurnAndStreakManager.Instance.CurrentState != GameState.MatchSetup &&
+                                (DayakattamDungeon.UI.GameHUD.Instance == null || !DayakattamDungeon.UI.GameHUD.Instance.IsTitleScreenActive);
+
             PlayerType activePlayer = TurnAndStreakManager.Instance.ActivePlayer;
 
             foreach (var tv in trayVisuals)
             {
                 if (tv.trayGO == null) continue;
-                bool isThisPlayerActive = tv.trayGO.activeInHierarchy && (tv.player == activePlayer || (tv.player == PlayerType.Bot && activePlayer == PlayerType.Player3));
+                bool isThisPlayerActive = isGameActive && tv.trayGO.activeInHierarchy && (tv.player == activePlayer || (tv.player == PlayerType.Bot && activePlayer == PlayerType.Player3));
 
                 if (tv.haloGO != null) tv.haloGO.SetActive(isThisPlayerActive);
                 if (tv.badgeGO != null) tv.badgeGO.SetActive(isThisPlayerActive);
+                if (!isThisPlayerActive && tv.hudLabel != null) tv.hudLabel.transform.localScale = tv.initialLabelScale;
             }
         }
     }

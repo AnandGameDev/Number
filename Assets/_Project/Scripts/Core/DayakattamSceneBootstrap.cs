@@ -135,8 +135,6 @@ namespace DayakattamDungeon.Core
                 {
                     new GameObject("PlayerTrayTurnIndicator", typeof(DayakattamDungeon.Environment.PlayerTrayTurnIndicator));
                 }
-
-                TurnAndStreakManager.Instance.InitializeMatch(false);
             }
 
             GameHUD hud = Object.FindFirstObjectByType<GameHUD>();
@@ -145,6 +143,10 @@ namespace DayakattamDungeon.Core
                 hud.InitializeHUD();
                 hud.RefreshAllPalaceProgressUI();
                 hud.ShowTitleScreen();
+            }
+            else if (TurnAndStreakManager.Instance != null)
+            {
+                TurnAndStreakManager.Instance.InitializeMatch(false);
             }
 
             if (TurnAndStreakManager.Instance != null && hud != null && hud.IsTitleScreenActive)
@@ -187,16 +189,15 @@ namespace DayakattamDungeon.Core
 
             if (Application.isPlaying)
             {
-                // Prepare board & managers, then present atmospheric Title Screen
-                if (TurnAndStreakManager.Instance != null)
-                {
-                    TurnAndStreakManager.Instance.InitializeMatch(false);
-                }
-
+                // Present atmospheric Title Screen; the match initializes when the player clicks Play Duel or Tutorial
                 GameHUD hud = Object.FindFirstObjectByType<GameHUD>();
                 if (hud != null)
                 {
                     hud.ShowTitleScreen();
+                }
+                else if (TurnAndStreakManager.Instance != null)
+                {
+                    TurnAndStreakManager.Instance.InitializeMatch(false);
                 }
             }
 #if UNITY_EDITOR

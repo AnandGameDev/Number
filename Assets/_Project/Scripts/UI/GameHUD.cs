@@ -457,16 +457,36 @@ namespace DayakattamDungeon.UI
             if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
             if (gameOverPanel != null) gameOverPanel.SetActive(false);
             if (tutorialPanel != null) tutorialPanel.SetActive(false);
-            if (titleScreenPanel != null) titleScreenPanel.SetActive(true);
+            if (titleScreenPanel != null)
+            {
+                titleScreenPanel.transform.SetAsLastSibling();
+                titleScreenPanel.SetActive(true);
+            }
+            if (turnBannerText != null)
+            {
+                turnBannerText.text = "";
+                turnBannerText.gameObject.SetActive(false);
+            }
             if (TurnAndStreakManager.Instance != null)
             {
                 TurnAndStreakManager.Instance.SetState(GameState.MatchSetup);
+            }
+
+            // Clean up any stray floating texts
+            var activeTexts = Object.FindObjectsByType<TextMeshPro>(FindObjectsSortMode.None);
+            foreach (var txt in activeTexts)
+            {
+                if (txt != null && txt.name.Contains("FloatingText"))
+                {
+                    Destroy(txt.gameObject);
+                }
             }
         }
 
         private void OnTitlePlayDuelClicked()
         {
             if (titleScreenPanel != null) titleScreenPanel.SetActive(false);
+            if (turnBannerText != null) turnBannerText.gameObject.SetActive(true);
             Time.timeScale = 1f;
 
             if (TutorialManager.Instance != null && TutorialManager.Instance.IsTutorialActive)
@@ -484,6 +504,7 @@ namespace DayakattamDungeon.UI
         private void OnTitleTutorialClicked()
         {
             if (titleScreenPanel != null) titleScreenPanel.SetActive(false);
+            if (turnBannerText != null) turnBannerText.gameObject.SetActive(true);
             Time.timeScale = 1f;
 
             if (TurnAndStreakManager.Instance != null)
@@ -515,11 +536,16 @@ namespace DayakattamDungeon.UI
         {
             if (pauseMenuPanel == null) return;
             openedSettingsFromTitle = fromTitle;
+            if (fromTitle && titleScreenPanel != null)
+            {
+                titleScreenPanel.SetActive(false);
+            }
             if (!fromTitle)
             {
                 Time.timeScale = 0f;
             }
             UpdateSettingsModalUI();
+            pauseMenuPanel.transform.SetAsLastSibling();
             pauseMenuPanel.SetActive(true);
         }
 
@@ -529,6 +555,7 @@ namespace DayakattamDungeon.UI
             Time.timeScale = 1f;
             if (openedSettingsFromTitle && titleScreenPanel != null)
             {
+                titleScreenPanel.transform.SetAsLastSibling();
                 titleScreenPanel.SetActive(true);
             }
             openedSettingsFromTitle = false;
@@ -649,6 +676,10 @@ namespace DayakattamDungeon.UI
             {
                 switch (state)
                 {
+                    case GameState.MatchSetup:
+                        turnBannerText.enableVertexGradient = false;
+                        turnBannerText.text = "";
+                        break;
                     case GameState.TutorialIntro:
                         turnBannerText.enableVertexGradient = false;
                         turnBannerText.text = "SACRED INITIATION - TUTORIAL";
@@ -674,7 +705,10 @@ namespace DayakattamDungeon.UI
                             turnBannerText.colorGradient = CholaBronzeGradient;
                             turnBannerText.color = Color.white;
                         }
-                        TriggerYourTurnAlert();
+                        if (!IsTitleScreenActive && (titleScreenPanel == null || !titleScreenPanel.activeInHierarchy) && state != GameState.MatchSetup)
+                        {
+                            TriggerYourTurnAlert();
+                        }
                         break;
                     case GameState.P1_ActionPhase:
                         turnBannerText.enableVertexGradient = false;
@@ -1250,6 +1284,10 @@ namespace DayakattamDungeon.UI
 
         private void TriggerYourTurnAlert()
         {
+            if (IsTitleScreenActive || (titleScreenPanel != null && titleScreenPanel.activeInHierarchy)) return;
+            if (pauseMenuPanel != null && pauseMenuPanel.activeInHierarchy) return;
+            if (TurnAndStreakManager.Instance != null && TurnAndStreakManager.Instance.CurrentState == GameState.MatchSetup) return;
+
             // Center floating 3D alert
             if (GameJuiceManager.Instance != null)
             {

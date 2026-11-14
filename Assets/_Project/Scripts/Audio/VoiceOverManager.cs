@@ -174,6 +174,10 @@ namespace DayakattamDungeon.Audio
         /// </summary>
         public void PlayPlayerTurnPrompt(bool ignoreMatchLimit = false)
         {
+            if (DayakattamDungeon.UI.GameHUD.Instance != null && DayakattamDungeon.UI.GameHUD.Instance.IsTitleScreenActive)
+            {
+                return;
+            }
             if (!ignoreMatchLimit && hasPlayedTurnPromptThisMatch)
             {
                 return;

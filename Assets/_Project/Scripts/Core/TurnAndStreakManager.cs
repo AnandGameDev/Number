@@ -180,7 +180,6 @@ namespace DayakattamDungeon.Core
             if (!IsFourPlayerUnlocked() && ThayamBoardGrid.Instance != null && ThayamBoardGrid.Instance.CurrentMode != BoardPlayerMode.TwoPlayers)
             {
                 ThayamBoardGrid.Instance.SetPlayerMode(BoardPlayerMode.TwoPlayers);
-                return;
             }
 
             ResetAllPawnsToReserve();
