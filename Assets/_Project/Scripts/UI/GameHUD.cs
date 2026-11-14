@@ -394,6 +394,9 @@ namespace DayakattamDungeon.UI
                 bool is4P = (ThayamBoardGrid.Instance.CurrentMode == BoardPlayerMode.FourPlayers);
                 bool isUnlocked = TurnAndStreakManager.IsFourPlayerUnlocked();
 
+                if (p2GoalText != null) p2GoalText.gameObject.SetActive(is4P);
+                if (p4GoalText != null) p4GoalText.gameObject.SetActive(is4P);
+
                 if (is4P)
                 {
                     playerModeText.text = "Mode: 4P";
@@ -700,7 +703,7 @@ namespace DayakattamDungeon.UI
                         }
                         else
                         {
-                            turnBannerText.text = "YOUR TURN: ROLL THE DAYAKATTAM!";
+                            turnBannerText.text = "YOUR TURN: ROLL THE THAYAM!";
                             turnBannerText.enableVertexGradient = true;
                             turnBannerText.colorGradient = CholaBronzeGradient;
                             turnBannerText.color = Color.white;
@@ -816,7 +819,7 @@ namespace DayakattamDungeon.UI
                 luckyCalloutText.color = Color.white;
                 luckyCalloutText.text = roll.total == 12 ? "PANNIRENDU! (12)\nEXTRA ROLL!" :
                                         roll.total == 1  ? "THAYAM! (1)\nSPIRIT AWAKENS!" :
-                                        $"AUSPICIOUS {roll.total}!\nEXTRA ROLL!";
+                                        $"LUCKY {roll.total}!\nEXTRA ROLL!";
                 CancelInvoke(nameof(HideLuckyCallout));
                 Invoke(nameof(HideLuckyCallout), 1.8f);
             }
@@ -1399,11 +1402,11 @@ namespace DayakattamDungeon.UI
             {
                 if (isP1Winner)
                 {
-                    string reviewPrompt = "\n\n<color=#FFD700><b>⭐ Enjoying Dayakattam? Please support this game & leave a review!</b></color>\n<size=13><color=#C0D0E8><i>If you like the game or wanna suggest anything, feel free to let me know!</i></color></size>";
+                    string reviewPrompt = "\n\n<color=#FFD700><b>⭐ Enjoying Thayam? Please support this game & leave a review!</b></color>\n<size=13><color=#C0D0E8><i>If you like the game or wanna suggest anything, feel free to let me know!</i></color></size>";
 
                     if (!is4P)
                     {
-                        gameOverSubtitleText.text = "Grandma beams with pride: 'Aha! All your spirit pawns have reached the Sacred Palace! You have mastered Dayakattam, kanna!'\n\n<color=#FFD700><b>*** UNLOCKED: 4-PLAYER MODE! ***</b></color>\n<size=14><i>You can now toggle to 4-Player Mode on the top bar to challenge all 4 quadrants!</i></size>" + reviewPrompt;
+                        gameOverSubtitleText.text = "Grandma beams with pride: 'Aha! All your spirit pawns have reached the Sacred Palace! You have mastered Thayam, kanna!'\n\n<color=#FFD700><b>*** UNLOCKED: 4-PLAYER MODE! ***</b></color>\n<size=14><i>You can now toggle to 4-Player Mode on the top bar to challenge all 4 quadrants!</i></size>" + reviewPrompt;
                     }
                     else
                     {
@@ -1421,6 +1424,9 @@ namespace DayakattamDungeon.UI
             if (gameOverStatsText != null && TurnAndStreakManager.Instance != null)
             {
                 int total = TurnAndStreakManager.Instance.TotalPawnsPerPlayer;
+                if (p2GoalText != null) p2GoalText.gameObject.SetActive(is4P);
+                if (p4GoalText != null) p4GoalText.gameObject.SetActive(is4P);
+
                 if (is4P)
                 {
                     gameOverStatsText.text = $"<b>Match Result (4-Player):</b>\n" +
@@ -1428,14 +1434,14 @@ namespace DayakattamDungeon.UI
                         $"• Mama (P2): <color=#55AAFF>{TurnAndStreakManager.Instance.P2PalaceCount}/{total}</color>\n" +
                         $"• Grandma (P3): <color=#44FF88>{TurnAndStreakManager.Instance.BotPalaceCount}/{total}</color>\n" +
                         $"• Dada (P4): <color=#FFDD44>{TurnAndStreakManager.Instance.P4PalaceCount}/{total}</color>\n" +
-                        $"• Peak Auspicious Multiplier: <color=#FFD700>{TurnAndStreakManager.Instance.PeakComboMultiplier:F1}x</color>";
+                        $"• Peak Lucky Multiplier: <color=#FFD700>{TurnAndStreakManager.Instance.PeakComboMultiplier:F1}x</color>";
                 }
                 else
                 {
                     gameOverStatsText.text = $"<b>Match Result (2-Player):</b>\n" +
                         $"• Player Pawns in Palace: <color=#66FF66>{TurnAndStreakManager.Instance.P1PalaceCount}/{total}</color>\n" +
                         $"• Grandma Pawns in Palace: <color=#FF6666>{TurnAndStreakManager.Instance.BotPalaceCount}/{total}</color>\n" +
-                        $"• Peak Auspicious Multiplier: <color=#FFD700>{TurnAndStreakManager.Instance.PeakComboMultiplier:F1}x</color>";
+                        $"• Peak Lucky Multiplier: <color=#FFD700>{TurnAndStreakManager.Instance.PeakComboMultiplier:F1}x</color>";
                 }
             }
 

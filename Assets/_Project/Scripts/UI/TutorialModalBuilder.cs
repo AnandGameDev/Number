@@ -164,7 +164,7 @@ namespace DayakattamDungeon.EditorUtils
             descTxt.font = bodyFont != null ? bodyFont : TMP_Settings.defaultFontAsset;
             descTxt.fontSize = 15.5f;
             descTxt.color = new Color(0.92f, 0.93f, 0.96f);
-            descTxt.text = "Dayakattam description...";
+            descTxt.text = "Thayam description...";
 
             // Bullet Points Box
             GameObject bulletsGO = new GameObject("BulletsText", typeof(RectTransform), typeof(TextMeshProUGUI));

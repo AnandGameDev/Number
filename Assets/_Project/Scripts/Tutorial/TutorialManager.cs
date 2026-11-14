@@ -68,7 +68,7 @@ namespace DayakattamDungeon.Tutorial
             // Prepare Step 1: Force roll to 1 (Thayam: 1 + 0)
             DayakattamRoller.Instance.ForceNextRoll(1, 0);
 
-            string dialogue = "Grandma: 'Roll the sacred brass sticks, kanna! In Dayakattam, rolling 1 (Thayam) is required to awaken your spirit pawn onto the path. Auspicious rolls grant an extra roll!'";
+            string dialogue = "Grandma: 'Roll the sacred brass sticks, kanna! In Thayam, rolling 1 (Thayam) is required to awaken your spirit pawn onto the path. Lucky rolls grant an extra roll!'";
             OnTutorialDialogueUpdated?.Invoke(currentStep, dialogue);
 
             if (VoiceOverManager.Instance != null)
@@ -92,7 +92,7 @@ namespace DayakattamDungeon.Tutorial
                 // Rig next roll to 12 (0 + 0 = Pannirendu!)
                 DayakattamRoller.Instance.ForceNextRoll(0, 0);
 
-                string dialogue = "Grandma: 'Thayam awakened! Notice you received an Extra Roll! Roll again to trigger an Auspicious Streak!'";
+                string dialogue = "Grandma: 'Thayam awakened! Notice you received an Extra Roll! Roll again to trigger a Lucky Streak!'";
                 OnTutorialDialogueUpdated?.Invoke(currentStep, dialogue);
 
                 if (VoiceOverManager.Instance != null)

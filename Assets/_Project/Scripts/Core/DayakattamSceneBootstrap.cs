@@ -48,6 +48,13 @@ namespace DayakattamDungeon.Core
         [Header("Prefabs & Mesh Assets")]
         [SerializeField] private GameObject dicePrefab;
 
+        private void Awake()
+        {
+            // Optimize for smooth, consistent 60fps performance across WebGL and desktop
+            Application.targetFrameRate = 60;
+            QualitySettings.vSyncCount = 0;
+        }
+
         private void Start()
         {
             if (!autoBuildOnStart) return;
@@ -135,6 +142,12 @@ namespace DayakattamDungeon.Core
                 {
                     new GameObject("PlayerTrayTurnIndicator", typeof(DayakattamDungeon.Environment.PlayerTrayTurnIndicator));
                 }
+            }
+
+            if (ThayamBoardGrid.Instance != null)
+            {
+                BoardPlayerMode startMode = TurnAndStreakManager.IsFourPlayerUnlocked() ? ThayamBoardGrid.Instance.CurrentMode : BoardPlayerMode.TwoPlayers;
+                ThayamBoardGrid.Instance.SetPlayerMode(startMode);
             }
 
             GameHUD hud = Object.FindFirstObjectByType<GameHUD>();
@@ -1024,7 +1037,7 @@ namespace DayakattamDungeon.Core
 
             // 1. Top Bar Elements (Anchored to Top-Center, perfectly spaced across 1920 width)
             Vector2 topAnchor = new Vector2(0.5f, 1f);
-            TextMeshProUGUI turnBanner = CreateTMPText(canvas.transform, "TurnBanner", "DAYAKATTAM DUNGEON", 25.5f, new Vector2(0, -40), new Vector2(420, 44), TextAlignmentOptions.Center, topAnchor, topAnchor, bannerItalicFont);
+            TextMeshProUGUI turnBanner = CreateTMPText(canvas.transform, "TurnBanner", "THAYAM DUNGEON", 25.5f, new Vector2(0, -40), new Vector2(420, 44), TextAlignmentOptions.Center, topAnchor, topAnchor, bannerItalicFont);
             turnBanner.fontStyle = FontStyles.Bold | FontStyles.Italic;
             turnBanner.enableAutoSizing = true;
             turnBanner.fontSizeMin = 17f;
@@ -1196,7 +1209,7 @@ namespace DayakattamDungeon.Core
             titleCardRT.sizeDelta = new Vector2(680, 490);
             titleCardGO.GetComponent<Image>().color = new Color(0.06f, 0.05f, 0.10f, 0.96f);
 
-            TextMeshProUGUI mainTitle = CreateTMPText(titleCardGO.transform, "MainTitle", "DAYAKATTAM DUNGEON", 44, new Vector2(0, 168), new Vector2(640, 68), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), titleFont);
+            TextMeshProUGUI mainTitle = CreateTMPText(titleCardGO.transform, "MainTitle", "THAYAM DUNGEON", 44, new Vector2(0, 168), new Vector2(640, 68), TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), titleFont);
             mainTitle.color = Color.white;
             mainTitle.fontStyle = FontStyles.Bold;
             mainTitle.enableAutoSizing = true;

@@ -252,7 +252,7 @@ namespace DayakattamDungeon.Entities
             {
                 if (GameJuiceManager.Instance != null)
                 {
-                    GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 0.8f, "Roll Dayakattam first!", Color.yellow, 1.0f);
+                    GameJuiceManager.Instance.SpawnFloatingText(transform.position + Vector3.up * 0.8f, "Roll Thayam first!", Color.yellow, 1.0f);
                 }
                 return;
             }

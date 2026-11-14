@@ -163,7 +163,9 @@ namespace DayakattamDungeon.Environment
             if (hudLabel != null)
             {
                 Vector3 s = hudLabel.transform.localScale;
-                if (float.IsNaN(s.x) || float.IsNaN(s.y) || float.IsNaN(s.z) || s.sqrMagnitude < 0.001f)
+                if (float.IsNaN(s.x) || float.IsNaN(s.y) || float.IsNaN(s.z) ||
+                    float.IsInfinity(s.x) || float.IsInfinity(s.y) || float.IsInfinity(s.z) ||
+                    s.sqrMagnitude < 0.001f)
                 {
                     s = new Vector3(4f, 4f, 4f);
                 }
@@ -227,7 +229,15 @@ namespace DayakattamDungeon.Environment
                 {
                     if (tv.haloGO != null && tv.haloGO.activeSelf) tv.haloGO.SetActive(false);
                     if (tv.badgeGO != null && tv.badgeGO.activeSelf) tv.badgeGO.SetActive(false);
-                    if (tv.hudLabel != null) tv.hudLabel.transform.localScale = tv.initialLabelScale;
+                    if (tv.hudLabel != null && tv.hudLabel.gameObject.activeInHierarchy)
+                    {
+                        Vector3 target = tv.initialLabelScale;
+                        if (!float.IsNaN(target.x) && !float.IsNaN(target.y) && !float.IsNaN(target.z) &&
+                            !float.IsInfinity(target.x) && !float.IsInfinity(target.y) && !float.IsInfinity(target.z))
+                        {
+                            tv.hudLabel.transform.localScale = target;
+                        }
+                    }
                 }
                 return;
             }
@@ -289,9 +299,11 @@ namespace DayakattamDungeon.Environment
                 }
 
                 // HUD Label scale pulse when active
-                if (tv.hudLabel != null)
+                if (tv.hudLabel != null && tv.hudLabel.gameObject.activeInHierarchy)
                 {
-                    if (float.IsNaN(tv.initialLabelScale.x) || tv.initialLabelScale.sqrMagnitude < 0.001f)
+                    if (float.IsNaN(tv.initialLabelScale.x) || float.IsNaN(tv.initialLabelScale.y) || float.IsNaN(tv.initialLabelScale.z) ||
+                        float.IsInfinity(tv.initialLabelScale.x) || float.IsInfinity(tv.initialLabelScale.y) || float.IsInfinity(tv.initialLabelScale.z) ||
+                        tv.initialLabelScale.sqrMagnitude < 0.001f)
                     {
                         tv.initialLabelScale = new Vector3(4f, 4f, 4f);
                     }
@@ -301,14 +313,24 @@ namespace DayakattamDungeon.Environment
                         float speed = (labelPulseSpeed > 0.01f) ? labelPulseSpeed : 2.5f;
                         float amount = (labelPulseAmount >= 0f) ? labelPulseAmount : 0.05f;
                         float labelPulse = 1.0f + Mathf.PingPong(Time.time * speed, amount);
-                        if (!float.IsNaN(labelPulse))
+                        if (!float.IsNaN(labelPulse) && !float.IsInfinity(labelPulse))
                         {
-                            tv.hudLabel.transform.localScale = tv.initialLabelScale * labelPulse;
+                            Vector3 target = tv.initialLabelScale * labelPulse;
+                            if (!float.IsNaN(target.x) && !float.IsNaN(target.y) && !float.IsNaN(target.z) &&
+                                !float.IsInfinity(target.x) && !float.IsInfinity(target.y) && !float.IsInfinity(target.z))
+                            {
+                                tv.hudLabel.transform.localScale = target;
+                            }
                         }
                     }
                     else
                     {
-                        tv.hudLabel.transform.localScale = tv.initialLabelScale;
+                        Vector3 target = tv.initialLabelScale;
+                        if (!float.IsNaN(target.x) && !float.IsNaN(target.y) && !float.IsNaN(target.z) &&
+                            !float.IsInfinity(target.x) && !float.IsInfinity(target.y) && !float.IsInfinity(target.z))
+                        {
+                            tv.hudLabel.transform.localScale = target;
+                        }
                     }
                 }
             }
@@ -335,7 +357,15 @@ namespace DayakattamDungeon.Environment
 
                 if (tv.haloGO != null) tv.haloGO.SetActive(isThisPlayerActive);
                 if (tv.badgeGO != null) tv.badgeGO.SetActive(isThisPlayerActive);
-                if (!isThisPlayerActive && tv.hudLabel != null) tv.hudLabel.transform.localScale = tv.initialLabelScale;
+                if (!isThisPlayerActive && tv.hudLabel != null && tv.hudLabel.gameObject.activeInHierarchy)
+                {
+                    Vector3 target = tv.initialLabelScale;
+                    if (!float.IsNaN(target.x) && !float.IsNaN(target.y) && !float.IsNaN(target.z) &&
+                        !float.IsInfinity(target.x) && !float.IsInfinity(target.y) && !float.IsInfinity(target.z))
+                    {
+                        tv.hudLabel.transform.localScale = target;
+                    }
+                }
             }
         }
     }

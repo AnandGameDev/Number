@@ -131,16 +131,16 @@ namespace DayakattamDungeon.UI
                 {
                     title = "The Sacred Tamil Dice Duel",
                     category = "STEP 1: HERITAGE & GOAL",
-                    description = "Dayakattam (Thayam) is an ancient tactical board game played across Tamil Nadu for millennia during auspicious festive gatherings.\n\nFour players sit at the corners of a sacred 7x7 board. Your goal is to guide all 3 Kalasam spirit pawns clockwise around the outer loop, spiral through the inner rings, and ascend into the Central Sacred Palace.",
+                    description = "Thayam is an ancient tactical board game played across Tamil Nadu for millennia during lucky festive gatherings.\n\nFour players sit at the corners of a sacred 7x7 board. Your goal is to guide all 3 Kalasam spirit pawns clockwise around the outer loop, spiral through the inner rings, and ascend into the Central Sacred Palace.",
                     bulletPoints = "• <b>Objective:</b> First player with all 3 pawns in the Palace wins.\n• <b>Match Size:</b> 2-Player (You vs Grandma) or 4-Player (You, Mama, Grandma, Dada).\n• <b>Spiritual Theme:</b> Awaken spirit pawns from your altar into the sacred mandala.",
                     tip = "You must enter through your own colored threshold (South Red) before spiraling inward!"
                 },
                 new TutorialSlideData
                 {
-                    title = "Rolling The Brass Dayakattam",
+                    title = "Rolling The Brass Thayam",
                     category = "STEP 2: DICE & LUCKY NUMBERS",
-                    description = "Dayakattam is played with two oblong brass stick dice with numbered long faces: 0, 1, 2, and 3.\n\nThe dice sum gives your movement value (1 to 6). But if both sticks land on blank (0 + 0), that roll triggers the fabled <b>12 (Pannirendu)!</b>",
-                    bulletPoints = "• <b>Auspicious Rolls (1, 5, 6, 12):</b> Grants an immediate <b>+1 Extra Roll</b>!\n• <b>Combo Multiplier:</b> Chaining lucky rolls powers up your combo (1x → 1.5x → 2x → 3x).\n• <b>Ending Rolls (2, 3, 4):</b> Standard rolls end your rolling turn and begin the Action Phase.",
+                    description = "Thayam is played with two oblong brass stick dice with numbered long faces: 0, 1, 2, and 3.\n\nThe dice sum gives your movement value (1 to 6). But if both sticks land on blank (0 + 0), that roll triggers the fabled <b>12 (Pannirendu)!</b>",
+                    bulletPoints = "• <b>Lucky Rolls (1, 5, 6, 12):</b> Grants an immediate <b>+1 Extra Roll</b>!\n• <b>Combo Multiplier:</b> Chaining lucky rolls powers up your combo (1x → 1.5x → 2x → 3x).\n• <b>Ending Rolls (2, 3, 4):</b> Standard rolls end your rolling turn and begin the Action Phase.",
                     tip = "Bank multiple rolls during a lucky streak, then spend them strategically across your pawns!"
                 },
                 new TutorialSlideData
@@ -156,7 +156,7 @@ namespace DayakattamDungeon.UI
                     title = "Sanctuary Tiles & Combat Cuts",
                     category = "STEP 4: TACTICS & CUTTING",
                     description = "The board has 8 crossed <b>Sanctuary</b> tiles (the 4 entry midpoints + 4 inner corners). These tiles grant divine immunity from opponent strikes.",
-                    bulletPoints = "• <b>Sanctuary Immunity:</b> Pawns on crossed tiles can co-exist safely without being captured.\n• <b>Striking / Cutting:</b> Landing exactly on an opponent pawn on an uncrossed tile cuts them back to their reserve!\n• <b>Cutting Bonus:</b> Successfully cutting an opponent pawn awards a massive Auspicious Multiplier boost.",
+                    bulletPoints = "• <b>Sanctuary Immunity:</b> Pawns on crossed tiles can co-exist safely without being captured.\n• <b>Striking / Cutting:</b> Landing exactly on an opponent pawn on an uncrossed tile cuts them back to their reserve!\n• <b>Cutting Bonus:</b> Successfully cutting an opponent pawn awards a massive Lucky Multiplier boost.",
                     tip = "Always prioritize parking vulnerable pawns on crossed Sanctuary tiles when ending your turn!"
                 },
                 new TutorialSlideData

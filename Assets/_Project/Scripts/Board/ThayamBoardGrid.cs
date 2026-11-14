@@ -197,12 +197,8 @@ namespace DayakattamDungeon.Board
 
         private void Start()
         {
-            if (!TurnAndStreakManager.IsFourPlayerUnlocked())
-            {
-                currentMode = BoardPlayerMode.TwoPlayers;
-            }
-            BuildNodeCacheAndPaths();
-            ApplyModeVisuals();
+            BoardPlayerMode mode = TurnAndStreakManager.IsFourPlayerUnlocked() ? currentMode : BoardPlayerMode.TwoPlayers;
+            SetPlayerMode(mode);
             UpdateWaypointLine();
         }
 
@@ -217,6 +213,40 @@ namespace DayakattamDungeon.Board
             }
             currentMode = mode;
             ApplyModeVisuals();
+
+            // Explicitly sync 2P vs 4P visibility: side pawns, side sanctuary trays, and HUD labels
+            bool is4P = (currentMode == BoardPlayerMode.FourPlayers);
+
+            if (TurnAndStreakManager.Instance != null)
+            {
+                var p2List = TurnAndStreakManager.Instance.Player2Pawns;
+                if (p2List != null) foreach (var p in p2List) if (p != null) p.gameObject.SetActive(is4P);
+
+                var p4List = TurnAndStreakManager.Instance.Player4Pawns;
+                if (p4List != null) foreach (var p in p4List) if (p != null) p.gameObject.SetActive(is4P);
+            }
+
+            var pawnsContainer = GameObject.Find("Pawns_Container");
+            if (pawnsContainer != null)
+            {
+                var p2Tray = pawnsContainer.transform.Find("P2_Sanctuary_Tray");
+                if (p2Tray != null) p2Tray.gameObject.SetActive(is4P);
+
+                var p4Tray = pawnsContainer.transform.Find("P4_Sanctuary_Tray");
+                if (p4Tray != null) p4Tray.gameObject.SetActive(is4P);
+            }
+
+            var p2Label = GameObject.Find("P2Text");
+            if (p2Label != null) p2Label.SetActive(is4P);
+
+            var p4Label = GameObject.Find("P4Text");
+            if (p4Label != null) p4Label.SetActive(is4P);
+
+            if (DayakattamDungeon.Environment.PlayerTrayTurnIndicator.Instance != null)
+            {
+                DayakattamDungeon.Environment.PlayerTrayTurnIndicator.Instance.UpdateActiveTrayVisuals();
+            }
+
             OnPlayerModeChanged?.Invoke(currentMode);
             Debug.Log($"[ThayamBoardGrid] Switched to {currentMode} mode.");
         }

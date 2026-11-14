@@ -373,7 +373,7 @@ namespace DayakattamDungeon.Core
                 }
 
                 // Remains in current rolling phase (Player or Bot rolls again)
-                Debug.Log($"[TurnAndStreakManager] Auspicious Streak! Rolled {roll.rollName}. Multiplier is now {currentComboMultiplier}x!");
+                Debug.Log($"[TurnAndStreakManager] Lucky Streak! Rolled {roll.rollName}. Multiplier is now {currentComboMultiplier}x!");
             }
             else
             {
@@ -640,6 +640,12 @@ namespace DayakattamDungeon.Core
                 var p4Tray = pawnsContainer.transform.Find("P4_Sanctuary_Tray");
                 if (p4Tray != null) p4Tray.gameObject.SetActive(is4P);
             }
+
+            var p2Text = GameObject.Find("P2Text");
+            if (p2Text != null) p2Text.SetActive(is4P);
+
+            var p4Text = GameObject.Find("P4Text");
+            if (p4Text != null) p4Text.SetActive(is4P);
 
             ResetAllPawnsToReserve();
             InitializeMatch(false);
